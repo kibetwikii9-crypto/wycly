@@ -5,8 +5,7 @@ This module provides:
 - Database base class for models
 - Database session dependency for FastAPI
 
-Uses SQLite for local development and can be upgraded to PostgreSQL
-for production without changing the interface.
+Uses Supabase PostgreSQL as the only database backend.
 """
 from contextlib import contextmanager
 from typing import Generator
@@ -17,27 +16,32 @@ from sqlalchemy.orm import sessionmaker, Session
 
 from app.config import settings
 
-# Create SQLAlchemy engine
-# SQLite connection string: sqlite:///./curie.db
-# PostgreSQL connection string: postgresql://user:pass@host/dbname
-# This supports both SQLite (local) and PostgreSQL (production)
-# For PostgreSQL, we use psycopg3 (postgresql+psycopg://) instead of psycopg2
+# Create SQLAlchemy engine for Supabase PostgreSQL
+# Connection string format: postgresql://user:pass@host/dbname
+# We use psycopg3 (postgresql+psycopg://) for Python 3.13 compatibility
 
-connect_args = {}
-database_url = settings.database_url
+if not settings.database_url:
+    raise ValueError(
+        "DATABASE_URL environment variable is required. "
+        "Please set it to your Supabase PostgreSQL connection string."
+    )
+
+# Validate that we're using PostgreSQL (Supabase)
+if not settings.database_url.startswith("postgresql://"):
+    raise ValueError(
+        f"Invalid DATABASE_URL: '{settings.database_url}'. "
+        "Only PostgreSQL (Supabase) connection strings are supported. "
+        "Format: postgresql://user:password@host:port/database"
+    )
 
 # Convert postgresql:// to postgresql+psycopg:// for psycopg3 support
-if database_url.startswith("postgresql://"):
-    # Replace postgresql:// with postgresql+psycopg:// to use psycopg3
-    database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
-elif database_url.startswith("sqlite"):
-    # SQLite-specific connection args
-    connect_args = {"check_same_thread": False}
+database_url = settings.database_url.replace("postgresql://", "postgresql+psycopg://", 1)
 
 engine = create_engine(
     database_url,
-    connect_args=connect_args,
     echo=False,  # Set to True for SQL query logging (useful for debugging)
+    pool_pre_ping=True,  # Verify connections before using them
+    pool_recycle=300,  # Recycle connections after 5 minutes
 )
 
 # Create session factory

@@ -4,8 +4,7 @@ This module contains all database models for the application.
 Models inherit from Base (defined in database.py) and represent
 database tables using SQLAlchemy's declarative syntax.
 
-All models are designed for SQLite Phase 1 but can migrate to PostgreSQL
-without code changes (ORM abstraction).
+All models are designed for Supabase PostgreSQL.
 """
 from datetime import datetime
 from enum import Enum as PyEnum

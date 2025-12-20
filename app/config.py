@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     frontend_url: str = ""  # Frontend URL for CORS (optional)
     log_level: str = "INFO"
     openai_api_key: str = ""
-    database_url: str = "sqlite:///./curie.db"
+    database_url: str  # Required: Supabase PostgreSQL connection string
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
