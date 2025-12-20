@@ -20,9 +20,7 @@ services:
           name: curie-frontend
           property: host
       - key: DATABASE_URL
-        fromDatabase:
-          name: curie-db
-          property: connectionString
+        sync: false  # Set this manually with your Supabase connection string
       - key: LOG_LEVEL
         value: INFO
       - key: OPENAI_API_KEY
@@ -43,11 +41,4 @@ services:
           name: curie-backend
           property: host
     staticPublishPath: frontend/.next
-
-  # PostgreSQL Database
-  - type: pspg
-    name: curie-db
-    plan: free  # Free tier: 90 days, then $7/month. Change to 'starter' for production
-    databaseName: curie
-    user: curie_user
 
