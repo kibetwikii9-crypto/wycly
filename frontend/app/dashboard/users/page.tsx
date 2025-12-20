@@ -1,6 +1,6 @@
 'use client';
 
-import { Users, Shield, UserCheck, Eye, Clock, Lock } from 'lucide-react';
+import { Users, Shield, UserCheck, Eye, Clock, Lock, CheckCircle2 } from 'lucide-react';
 
 const roles = [
   {
