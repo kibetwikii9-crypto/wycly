@@ -1624,3 +1624,286 @@ async def get_knowledge_entry_detail(
         "usage_timeline": usage_timeline[:20],
     }
 
+
+@router.get("/ai-rules/coverage")
+async def get_rule_coverage(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get rule coverage and health overview."""
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    supported_intents = ["greeting", "help", "pricing", "human"]
+    
+    conversation_intents = db.query(Conversation.intent).filter(
+        Conversation.created_at >= start_date
+    ).distinct().all()
+    all_intents = [intent[0] for intent in conversation_intents if intent[0]]
+    
+    intents_with_coverage = [intent for intent in all_intents if intent in supported_intents]
+    intents_without_coverage = [intent for intent in all_intents if intent not in supported_intents and intent != "unknown"]
+    
+    fallback_count = db.query(func.count(Conversation.id)).filter(
+        Conversation.created_at >= start_date,
+        Conversation.intent == "unknown"
+    ).scalar() or 0
+    
+    total_conversations = db.query(func.count(Conversation.id)).filter(
+        Conversation.created_at >= start_date
+    ).scalar() or 0
+    
+    fallback_rate = (fallback_count / max(total_conversations, 1)) * 100
+    
+    successful_intents = []
+    for intent in supported_intents:
+        intent_leads = db.query(func.count(Lead.id)).filter(
+            Lead.source_intent == intent,
+            Lead.created_at >= start_date
+        ).scalar() or 0
+        if intent_leads > 0:
+            successful_intents.append({
+                "intent": intent,
+                "leads_generated": intent_leads,
+            })
+    
+    return {
+        "total_active_rules": len(supported_intents),
+        "intents_with_coverage": intents_with_coverage,
+        "intents_without_coverage": intents_without_coverage,
+        "fallback_frequency": fallback_count,
+        "fallback_rate": round(fallback_rate, 1),
+        "successful_rules": successful_intents,
+        "coverage_percentage": round((len(intents_with_coverage) / max(len(all_intents), 1)) * 100, 1) if all_intents else 100,
+    }
+
+
+@router.get("/ai-rules/effectiveness")
+async def get_rule_effectiveness(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get rule impact and effectiveness indicators."""
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    intent_rules = {
+        "greeting": ["hi", "hello", "hey", "greetings", "good morning", "good afternoon"],
+        "help": ["help", "support", "what can you do", "assist", "guide"],
+        "pricing": ["price", "cost", "pricing", "how much", "fee", "subscription"],
+        "human": ["agent", "human", "talk to someone", "speak to someone", "representative"],
+    }
+    
+    rule_effectiveness = []
+    for intent, keywords in intent_rules.items():
+        trigger_count = db.query(func.count(Conversation.id)).filter(
+            Conversation.intent == intent,
+            Conversation.created_at >= start_date
+        ).scalar() or 0
+        
+        leads_generated = db.query(func.count(Lead.id)).filter(
+            Lead.source_intent == intent,
+            Lead.created_at >= start_date
+        ).scalar() or 0
+        
+        last_triggered = db.query(Conversation.created_at).filter(
+            Conversation.intent == intent,
+            Conversation.created_at >= start_date
+        ).order_by(Conversation.created_at.desc()).first()
+        
+        last_triggered_time = last_triggered[0].isoformat() if last_triggered else None
+        
+        knowledge_linked = db.query(func.count(KnowledgeEntry.id)).filter(
+            KnowledgeEntry.intent == intent
+        ).scalar() or 0
+        
+        rule_effectiveness.append({
+            "intent": intent,
+            "keywords": keywords,
+            "trigger_frequency": trigger_count,
+            "successful_response_rate": 100.0 if trigger_count > 0 else 0,
+            "leads_generated": leads_generated,
+            "knowledge_linked": knowledge_linked > 0,
+            "last_triggered": last_triggered_time,
+        })
+    
+    return {
+        "rules": rule_effectiveness,
+    }
+
+
+@router.get("/ai-rules/confidence")
+async def get_automation_confidence(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get automation confidence signals."""
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    total_conversations = db.query(func.count(Conversation.id)).filter(
+        Conversation.created_at >= start_date
+    ).scalar() or 0
+    
+    unknown_count = db.query(func.count(Conversation.id)).filter(
+        Conversation.created_at >= start_date,
+        Conversation.intent == "unknown"
+    ).scalar() or 0
+    
+    fallback_rate = (unknown_count / max(total_conversations, 1)) * 100
+    
+    confidence_signals = []
+    
+    if fallback_rate < 10:
+        confidence_signals.append({
+            "type": "high_confidence",
+            "message": "High confidence - low fallback rate",
+        })
+    elif fallback_rate < 20:
+        confidence_signals.append({
+            "type": "moderate_confidence",
+            "message": "Moderate confidence - some fallbacks detected",
+        })
+    else:
+        confidence_signals.append({
+            "type": "low_confidence",
+            "message": "Low confidence - high fallback rate",
+        })
+    
+    intent_knowledge_counts = (
+        db.query(KnowledgeEntry.intent, func.count(KnowledgeEntry.id).label("count"))
+        .filter(KnowledgeEntry.intent.isnot(None))
+        .group_by(KnowledgeEntry.intent)
+        .having(func.count(KnowledgeEntry.id) > 1)
+        .all()
+    )
+    
+    if intent_knowledge_counts:
+        for intent, count in intent_knowledge_counts:
+            confidence_signals.append({
+                "type": "overlapping_rules",
+                "message": f"Multiple knowledge entries for '{intent}' intent",
+            })
+    
+    return {
+        "signals": confidence_signals,
+        "fallback_rate": round(fallback_rate, 1),
+        "total_conversations": total_conversations,
+    }
+
+
+@router.get("/ai-rules/flow")
+async def get_automation_flow(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get automation flow visualization data."""
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    total_incoming = db.query(func.count(Conversation.id)).filter(
+        Conversation.created_at >= start_date
+    ).scalar() or 0
+    
+    rule_matched = db.query(func.count(Conversation.id)).filter(
+        Conversation.created_at >= start_date,
+        Conversation.intent != "unknown"
+    ).scalar() or 0
+    
+    knowledge_used = db.query(func.count(KnowledgeEntry.id)).scalar() or 0
+    
+    successful = rule_matched
+    fallback = db.query(func.count(Conversation.id)).filter(
+        Conversation.created_at >= start_date,
+        Conversation.intent == "unknown"
+    ).scalar() or 0
+    
+    return {
+        "flow": {
+            "user_message": total_incoming,
+            "intent_detection": total_incoming,
+            "rule_match": rule_matched,
+            "knowledge_response": knowledge_used > 0,
+            "outcomes": {
+                "success": successful,
+                "fallback": fallback,
+                "handoff": 0,
+            },
+        },
+    }
+
+
+@router.get("/ai-rules/recommendations")
+async def get_rule_recommendations(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get smart rule recommendations (rule-based)."""
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    recommendations = []
+    
+    fallback_count = db.query(func.count(Conversation.id)).filter(
+        Conversation.created_at >= start_date,
+        Conversation.intent == "unknown"
+    ).scalar() or 0
+    
+    if fallback_count > 10:
+        recommendations.append({
+            "type": "high_fallback",
+            "priority": "medium",
+            "message": f"{fallback_count} conversations fell back to default responses. Consider adding rules for common patterns.",
+        })
+    
+    conversation_intents = db.query(Conversation.intent).filter(
+        Conversation.created_at >= start_date
+    ).distinct().all()
+    all_intents = [intent[0] for intent in conversation_intents if intent[0] and intent[0] != "unknown"]
+    
+    for intent in all_intents:
+        knowledge_count = db.query(func.count(KnowledgeEntry.id)).filter(
+            KnowledgeEntry.intent == intent
+        ).scalar() or 0
+        
+        if knowledge_count == 0:
+            recommendations.append({
+                "type": "missing_knowledge",
+                "priority": "low",
+                "message": f"Intent '{intent}' has no knowledge base entries. Consider adding FAQ responses.",
+            })
+    
+    return {
+        "recommendations": recommendations[:5],
+    }
+
+
+@router.post("/ai-rules/test")
+async def test_rule(
+    request: dict,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Test a sample message against existing rules (safe testing mode)."""
+    from app.services.ai_brain import detect_intent
+    from app.schemas import NormalizedMessage, MessageChannel
+    from datetime import datetime
+    
+    message = request.get("message", "")
+    if not message:
+        return {
+            "error": "Message is required",
+        }
+    
+    test_message = NormalizedMessage(
+        channel=MessageChannel.TELEGRAM,
+        user_id="test-user",
+        message_text=message,
+        timestamp=datetime.utcnow(),
+    )
+    
+    intent = detect_intent(test_message)
+    intent_value = intent.value if hasattr(intent, "value") else "unknown"
+    
+    return {
+        "test_message": message,
+        "detected_intent": intent_value,
+        "confidence": "high" if intent_value != "unknown" else "low",
+        "rule_matched": intent_value != "unknown",
+        "expected_path": "rule_based" if intent_value != "unknown" else "fallback",
+    }
