@@ -63,10 +63,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     });
 
+    if (!response.data || !response.data.access_token) {
+      throw new Error('Invalid response from server');
+    }
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('access_token', response.data.access_token);
     }
-    setUser(response.data.user);
+    
+    if (response.data.user) {
+      setUser(response.data.user);
+    } else {
+      throw new Error('User data not received');
+    }
   };
 
   const logout = () => {
