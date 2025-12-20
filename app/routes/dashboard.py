@@ -8,7 +8,7 @@ from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Conversation, Lead, AnalyticsEvent, ChannelIntegration, User as UserModel, Message, ConversationMemory, KnowledgeEntry
+from app.models import Conversation, Lead, AnalyticsEvent, ChannelIntegration, User as UserModel, Message, ConversationMemory, KnowledgeEntry, AdAsset
 from app.routes.auth import get_current_user
 
 log = logging.getLogger(__name__)
@@ -1906,4 +1906,420 @@ async def test_rule(
         "confidence": "high" if intent_value != "unknown" else "low",
         "rule_matched": intent_value != "unknown",
         "expected_path": "rule_based" if intent_value != "unknown" else "fallback",
+    }
+
+
+# ============================================================================
+# AD & VIDEO CREATION STUDIO ENDPOINTS
+# ============================================================================
+
+@router.get("/ads/campaigns")
+async def get_campaigns(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get all campaigns with their assets."""
+    # For now, we'll use AdAsset to group by campaign (stored in extra_data)
+    # In a full implementation, you'd have a Campaign model
+    assets = db.query(AdAsset).filter(
+        AdAsset.business_id == current_user.business_id if hasattr(current_user, 'business_id') else True
+    ).order_by(AdAsset.created_at.desc()).all()
+    
+    # Group assets by campaign (simplified - using title prefix or extra_data)
+    campaigns = {}
+    for asset in assets:
+        # Extract campaign name from title or use "Uncategorized"
+        campaign_name = "Uncategorized"
+        if asset.extra_data:
+            try:
+                import json
+                extra = json.loads(asset.extra_data)
+                campaign_name = extra.get("campaign_name", "Uncategorized")
+            except:
+                pass
+        
+        if campaign_name not in campaigns:
+            campaigns[campaign_name] = {
+                "name": campaign_name,
+                "assets": [],
+                "asset_count": 0,
+                "platforms": set(),
+                "status": "draft",
+                "created_at": asset.created_at.isoformat(),
+                "updated_at": asset.updated_at.isoformat(),
+            }
+        
+        campaigns[campaign_name]["assets"].append({
+            "id": asset.id,
+            "title": asset.title,
+            "type": asset.asset_type,
+            "platform": asset.platform,
+            "status": asset.status,
+        })
+        campaigns[campaign_name]["asset_count"] += 1
+        if asset.platform:
+            campaigns[campaign_name]["platforms"].add(asset.platform)
+        if asset.status == "published":
+            campaigns[campaign_name]["status"] = "published"
+    
+    # Convert sets to lists
+    for campaign in campaigns.values():
+        campaign["platforms"] = list(campaign["platforms"])
+    
+    return {
+        "campaigns": list(campaigns.values()),
+    }
+
+
+@router.get("/ads/copy-templates")
+async def get_copy_templates(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get ad copy templates categorized by goal and platform."""
+    templates = {
+        "headline": {
+            "promotion": [
+                "🎉 Limited Time Offer: [Product/Service]",
+                "Don't Miss Out: [Offer]",
+                "Special Deal: [Details]",
+            ],
+            "announcement": [
+                "Exciting News: [Announcement]",
+                "We're Proud to Announce: [News]",
+                "Introducing: [New Feature/Product]",
+            ],
+            "offer": [
+                "Exclusive Offer: [Details]",
+                "Save [Amount]% Today Only",
+                "Special Discount: [Offer]",
+            ],
+        },
+        "description": {
+            "promotion": [
+                "Get [benefit] with our [product/service]. Perfect for [target audience]. Act now!",
+                "Discover [value proposition]. Limited availability. Order today!",
+            ],
+            "announcement": [
+                "We're excited to share [announcement]. Learn more about [details].",
+                "Big news! [Announcement]. Find out more at [link/contact].",
+            ],
+        },
+        "cta": [
+            "Shop Now",
+            "Learn More",
+            "Get Started",
+            "Contact Us",
+            "Book Now",
+            "Sign Up",
+        ],
+    }
+    
+    return {
+        "templates": templates,
+    }
+
+
+@router.get("/ads/conversation-intelligence")
+async def get_conversation_intelligence(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get conversation-driven copy intelligence (top questions, intents, etc.)."""
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    # Top customer questions (from conversations)
+    top_questions = (
+        db.query(Conversation.user_message, func.count(Conversation.id).label("count"))
+        .filter(Conversation.created_at >= start_date)
+        .group_by(Conversation.user_message)
+        .order_by(func.count(Conversation.id).desc())
+        .limit(10)
+        .all()
+    )
+    
+    # High-performing intents
+    intent_counts = (
+        db.query(Conversation.intent, func.count(Conversation.id).label("count"))
+        .filter(Conversation.created_at >= start_date)
+        .group_by(Conversation.intent)
+        .order_by(func.count(Conversation.id).desc())
+        .limit(5)
+        .all()
+    )
+    
+    # Top knowledge base entries (frequently used)
+    knowledge_usage = (
+        db.query(KnowledgeEntry.question, KnowledgeEntry.answer)
+        .filter(KnowledgeEntry.is_active == True)
+        .limit(10)
+        .all()
+    )
+    
+    return {
+        "top_questions": [{"question": q, "frequency": c} for q, c in top_questions],
+        "high_performing_intents": [{"intent": i, "count": c} for i, c in intent_counts],
+        "frequently_asked": [{"question": q, "answer": a[:100]} for q, a in knowledge_usage],
+    }
+
+
+@router.get("/ads/platform-presets")
+async def get_platform_presets(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get platform tone presets and formatting guidelines."""
+    presets = {
+        "instagram": {
+            "tone": "Short & punchy",
+            "max_length": 2200,
+            "hashtags": True,
+            "emoji": True,
+            "formatting": "Single post with image/video",
+        },
+        "whatsapp_status": {
+            "tone": "Direct & sales-focused",
+            "max_length": 500,
+            "hashtags": False,
+            "emoji": True,
+            "formatting": "Short status update",
+        },
+        "facebook": {
+            "tone": "Informative & branded",
+            "max_length": 5000,
+            "hashtags": True,
+            "emoji": True,
+            "formatting": "Post with optional media",
+        },
+    }
+    
+    return {
+        "presets": presets,
+    }
+
+
+@router.post("/ads/generate-copy")
+async def generate_ad_copy(
+    request: dict,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generate ad copy using templates and conversation intelligence (rule-based)."""
+    objective = request.get("objective", "promotion")
+    platform = request.get("platform", "instagram")
+    template_type = request.get("template_type", "headline")
+    use_intelligence = request.get("use_intelligence", False)
+    
+    # Get templates
+    templates_response = await get_copy_templates(current_user, db)
+    templates = templates_response["templates"]
+    
+    # Select template based on objective
+    if template_type == "headline":
+        available = templates["headline"].get(objective, templates["headline"]["promotion"])
+        selected = available[0] if available else "Special Offer"
+    elif template_type == "description":
+        available = templates["description"].get(objective, templates["description"]["promotion"])
+        selected = available[0] if available else "Get started today!"
+    else:
+        selected = templates["cta"][0] if templates["cta"] else "Learn More"
+    
+    # Apply platform tone (simplified rule-based)
+    if platform == "instagram":
+        # Make it shorter and punchier
+        if len(selected) > 100:
+            selected = selected[:97] + "..."
+    elif platform == "whatsapp_status":
+        # Make it direct
+        selected = selected.replace("Discover", "Get").replace("Learn more", "Contact us")
+    
+    # Add intelligence if requested
+    intelligence_text = ""
+    if use_intelligence:
+        intelligence_data = await get_conversation_intelligence(current_user, db)
+        if intelligence_data["top_questions"]:
+            top_q = intelligence_data["top_questions"][0]["question"]
+            intelligence_text = f"\n\n💡 Customer Insight: '{top_q[:50]}...'"
+    
+    return {
+        "copy": selected + intelligence_text,
+        "template_used": selected,
+        "platform": platform,
+        "objective": objective,
+    }
+
+
+@router.get("/ads/video-templates")
+async def get_video_templates(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get video templates by type."""
+    templates = {
+        "static_image_text": {
+            "name": "Static Image + Text",
+            "description": "Single image with overlay text",
+            "duration": 5,
+            "scenes": 1,
+        },
+        "image_slideshow": {
+            "name": "Image Slideshow",
+            "description": "Multiple images with transitions",
+            "duration": 15,
+            "scenes": 3,
+        },
+        "short_clip_overlay": {
+            "name": "Short Clip + Overlay Text",
+            "description": "Video clip with text overlay",
+            "duration": 10,
+            "scenes": 1,
+        },
+    }
+    
+    return {
+        "templates": templates,
+    }
+
+
+@router.get("/ads/brand-assets")
+async def get_brand_assets(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get brand assets (logos, colors, fonts, etc.)."""
+    # In a full implementation, this would come from a BrandAsset model
+    # For now, return default brand structure
+    return {
+        "logo": {
+            "primary": None,
+            "secondary": None,
+        },
+        "colors": {
+            "primary": "#6366f1",
+            "secondary": "#8b5cf6",
+            "accent": "#ec4899",
+        },
+        "fonts": {
+            "heading": "Inter",
+            "body": "Inter",
+        },
+        "contact": {
+            "phone": None,
+            "email": None,
+            "website": None,
+        },
+        "legal_disclaimer": None,
+    }
+
+
+@router.get("/ads/usage-insights")
+async def get_usage_insights(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get performance and usage insights for ad assets."""
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    # Total assets created
+    total_assets = db.query(func.count(AdAsset.id)).filter(
+        AdAsset.created_at >= start_date
+    ).scalar() or 0
+    
+    # Assets by type
+    assets_by_type = (
+        db.query(AdAsset.asset_type, func.count(AdAsset.id).label("count"))
+        .filter(AdAsset.created_at >= start_date)
+        .group_by(AdAsset.asset_type)
+        .all()
+    )
+    
+    # Assets by platform
+    assets_by_platform = (
+        db.query(AdAsset.platform, func.count(AdAsset.id).label("count"))
+        .filter(AdAsset.created_at >= start_date, AdAsset.platform.isnot(None))
+        .group_by(AdAsset.platform)
+        .all()
+    )
+    
+    # Assets by status
+    assets_by_status = (
+        db.query(AdAsset.status, func.count(AdAsset.id).label("count"))
+        .filter(AdAsset.created_at >= start_date)
+        .group_by(AdAsset.status)
+        .all()
+    )
+    
+    # Link to top intents (if assets reference intents in extra_data)
+    intent_linkage = []
+    assets_with_intents = db.query(AdAsset).filter(
+        AdAsset.created_at >= start_date,
+        AdAsset.extra_data.isnot(None)
+    ).all()
+    
+    for asset in assets_with_intents:
+        try:
+            import json
+            extra = json.loads(asset.extra_data)
+            if "intent" in extra:
+                intent_linkage.append(extra["intent"])
+        except:
+            pass
+    
+    return {
+        "total_assets": total_assets,
+        "assets_by_type": [{"type": t, "count": c} for t, c in assets_by_type],
+        "assets_by_platform": [{"platform": p, "count": c} for p, c in assets_by_platform],
+        "assets_by_status": [{"status": s, "count": c} for s, c in assets_by_status],
+        "intent_linkage": list(set(intent_linkage)),
+    }
+
+
+@router.post("/ads/assets")
+async def create_ad_asset(
+    request: dict,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create a new ad asset (copy or video metadata)."""
+    asset_type = request.get("asset_type", "ad_copy")
+    title = request.get("title", "Untitled")
+    content = request.get("content", "")
+    platform = request.get("platform", "instagram")
+    status = request.get("status", "draft")
+    campaign_name = request.get("campaign_name", "Uncategorized")
+    extra_data = request.get("extra_data", {})
+    
+    # Add campaign name to extra_data
+    import json
+    if isinstance(extra_data, dict):
+        extra_data["campaign_name"] = campaign_name
+    else:
+        extra_data = {"campaign_name": campaign_name}
+    
+    # Get business_id (default to 1 if not available)
+    # In a multi-tenant system, this would come from current_user.business_id
+    default_business_id = 1
+    business_id = getattr(current_user, 'business_id', default_business_id)
+    
+    asset = AdAsset(
+        business_id=business_id,
+        asset_type=asset_type,
+        title=title,
+        content=content,
+        platform=platform,
+        status=status,
+        extra_data=json.dumps(extra_data),
+    )
+    
+    db.add(asset)
+    db.commit()
+    db.refresh(asset)
+    
+    return {
+        "id": asset.id,
+        "title": asset.title,
+        "type": asset.asset_type,
+        "platform": asset.platform,
+        "status": asset.status,
+        "created_at": asset.created_at.isoformat(),
     }
