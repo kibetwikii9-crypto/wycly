@@ -15,8 +15,8 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models import User
 
-# JWT settings (add to config later)
-SECRET_KEY = "your-secret-key-change-in-production"  # TODO: Move to settings
+# JWT settings
+SECRET_KEY = settings.secret_key  # Loaded from environment variable
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 24 * 60  # 30 days
 

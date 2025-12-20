@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     openai_api_key: str = ""
     database_url: str  # Required: Supabase PostgreSQL connection string
+    secret_key: str = "your-secret-key-change-in-production"  # JWT secret key (set via SECRET_KEY env var)
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

@@ -148,8 +148,8 @@ async def generate_ai_response(message: NormalizedMessage, intent: MessageIntent
         system_prompt = build_system_prompt(intent)
         user_prompt = build_user_prompt(message)
 
-        # TODO: Replace with actual LLM API call
-        # For now, simulate AI response based on prompts
+        # Note: Currently using rule-based responses (ai_brain.py handles actual processing)
+        # This function is kept for future LLM integration
         # When LLM is integrated, this will become:
         # try:
         #     response = await llm_client.chat(
