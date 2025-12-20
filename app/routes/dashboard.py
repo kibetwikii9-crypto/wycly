@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Conversation, Lead, AnalyticsEvent, ChannelIntegration, User as UserModel, Message, ConversationMemory
+from app.models import Conversation, Lead, AnalyticsEvent, ChannelIntegration, User as UserModel, Message, ConversationMemory, KnowledgeEntry
 from app.routes.auth import get_current_user
 
 log = logging.getLogger(__name__)
@@ -426,6 +426,270 @@ async def get_conversations(
     }
 
 
+@router.get("/knowledge")
+async def get_knowledge_base(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    intent: Optional[str] = None,
+    status: Optional[str] = None,  # active, inactive, needs-review
+    search: Optional[str] = None,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get knowledge base entries with intelligence data."""
+    from sqlalchemy import or_
+    import json
+    
+    # For now, use default business_id (can be enhanced with multi-tenant later)
+    default_business_id = 1
+    
+    query = db.query(KnowledgeEntry).filter(KnowledgeEntry.business_id == default_business_id)
+    
+    # Apply filters
+    if intent:
+        query = query.filter(KnowledgeEntry.intent == intent)
+    if status == "active":
+        query = query.filter(KnowledgeEntry.is_active == True)
+    elif status == "inactive":
+        query = query.filter(KnowledgeEntry.is_active == False)
+    if search:
+        query = query.filter(
+            (KnowledgeEntry.question.ilike(f"%{search}%")) |
+            (KnowledgeEntry.answer.ilike(f"%{search}%"))
+        )
+    
+    # Get total count
+    total = query.count()
+    
+    # Apply pagination
+    offset = (page - 1) * limit
+    entries = query.order_by(KnowledgeEntry.updated_at.desc()).offset(offset).limit(limit).all()
+    
+    # Get all intents from conversations
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    # Build response with intelligence data
+    result_entries = []
+    for entry in entries:
+        # Count usage in conversations (simple keyword matching)
+        usage_count = 0
+        keywords = []
+        if entry.keywords:
+            try:
+                keywords = json.loads(entry.keywords) if isinstance(entry.keywords, str) else entry.keywords
+                if keywords and isinstance(keywords, list):
+                    # Count conversations with matching keywords
+                    usage_count = db.query(func.count(Conversation.id)).filter(
+                        Conversation.created_at >= start_date,
+                        or_(*[Conversation.user_message.ilike(f"%{kw}%") for kw in keywords[:3]])
+                    ).scalar() or 0
+            except:
+                keywords = []
+        
+        # Check if entry is linked to intent
+        has_intent_link = entry.intent is not None and entry.intent != ""
+        
+        # Determine quality signals
+        quality_signals = []
+        if usage_count > 10:
+            quality_signals.append("high_performing")
+        elif usage_count == 0:
+            quality_signals.append("unused")
+        if not has_intent_link:
+            quality_signals.append("needs_intent_link")
+        if entry.is_active == False:
+            quality_signals.append("inactive")
+        
+        # Get last used timestamp (simplified - use updated_at for now)
+        last_used = entry.updated_at.isoformat()
+        
+        result_entries.append({
+            "id": entry.id,
+            "question": entry.question,
+            "answer": entry.answer,
+            "keywords": keywords,
+            "intent": entry.intent,
+            "is_active": entry.is_active,
+            "created_at": entry.created_at.isoformat(),
+            "updated_at": entry.updated_at.isoformat(),
+            # Intelligence data
+            "usage_count": usage_count,
+            "quality_signals": quality_signals,
+            "has_intent_link": has_intent_link,
+            "last_used": last_used,
+        })
+    
+    return {
+        "entries": result_entries,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total + limit - 1) // limit,
+    }
+
+
+@router.get("/knowledge/health")
+async def get_knowledge_health(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get knowledge base health and coverage metrics."""
+    default_business_id = 1
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    # Total knowledge entries
+    total_entries = db.query(func.count(KnowledgeEntry.id)).filter(
+        KnowledgeEntry.business_id == default_business_id
+    ).scalar() or 0
+    
+    # Active entries
+    active_entries = db.query(func.count(KnowledgeEntry.id)).filter(
+        KnowledgeEntry.business_id == default_business_id,
+        KnowledgeEntry.is_active == True
+    ).scalar() or 0
+    
+    # Entries with intent links
+    entries_with_intent = db.query(func.count(KnowledgeEntry.id)).filter(
+        KnowledgeEntry.business_id == default_business_id,
+        KnowledgeEntry.intent.isnot(None),
+        KnowledgeEntry.intent != ""
+    ).scalar() or 0
+    
+    # Get all intents from conversations
+    conversation_intents = db.query(Conversation.intent).filter(
+        Conversation.created_at >= start_date
+    ).distinct().all()
+    all_intents = [intent[0] for intent in conversation_intents if intent[0] and intent[0] != "unknown"]
+    
+    # Get intents with knowledge entries
+    knowledge_intents = db.query(KnowledgeEntry.intent).filter(
+        KnowledgeEntry.business_id == default_business_id,
+        KnowledgeEntry.intent.isnot(None),
+        KnowledgeEntry.intent != ""
+    ).distinct().all()
+    knowledge_intent_list = [intent[0] for intent in knowledge_intents]
+    
+    # Intents without knowledge
+    intents_without_knowledge = [intent for intent in all_intents if intent not in knowledge_intent_list]
+    
+    return {
+        "total_entries": total_entries,
+        "active_entries": active_entries,
+        "entries_with_intent": entries_with_intent,
+        "intents_without_knowledge": intents_without_knowledge,
+        "unused_entries_count": 0,  # Would need more complex logic
+        "coverage_percentage": round((len(knowledge_intent_list) / max(len(all_intents), 1)) * 100, 1) if all_intents else 100,
+    }
+
+
+@router.get("/knowledge/mapping")
+async def get_intent_knowledge_mapping(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get intent to knowledge entry mapping."""
+    default_business_id = 1
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    # Get all intents from conversations
+    conversation_intents = db.query(Conversation.intent, func.count(Conversation.id).label("count")).filter(
+        Conversation.created_at >= start_date
+    ).group_by(Conversation.intent).all()
+    
+    # Get all knowledge entries
+    knowledge_entries = db.query(KnowledgeEntry).filter(
+        KnowledgeEntry.business_id == default_business_id
+    ).all()
+    
+    # Build mapping
+    mapping = []
+    for intent, count in conversation_intents:
+        if intent and intent != "unknown":
+            linked_entries = [entry for entry in knowledge_entries if entry.intent == intent]
+            mapping.append({
+                "intent": intent,
+                "conversation_count": count,
+                "knowledge_entries": [
+                    {
+                        "id": entry.id,
+                        "question": entry.question,
+                        "is_active": entry.is_active,
+                    }
+                    for entry in linked_entries
+                ],
+                "has_coverage": len(linked_entries) > 0,
+            })
+    
+    return {
+        "mapping": mapping,
+    }
+
+
+@router.get("/knowledge/{entry_id}")
+async def get_knowledge_entry_detail(
+    entry_id: int,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get detailed knowledge entry with usage data."""
+    default_business_id = 1
+    from sqlalchemy import or_
+    import json
+    
+    entry = db.query(KnowledgeEntry).filter(
+        KnowledgeEntry.id == entry_id,
+        KnowledgeEntry.business_id == default_business_id
+    ).first()
+    
+    if not entry:
+        raise HTTPException(status_code=404, detail="Knowledge entry not found")
+    
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    # Get usage timeline
+    keywords = []
+    if entry.keywords:
+        try:
+            keywords = json.loads(entry.keywords) if isinstance(entry.keywords, str) else entry.keywords
+        except:
+            pass
+    
+    # Get conversations with matching keywords
+    usage_timeline = []
+    if keywords and isinstance(keywords, list):
+        for keyword in keywords[:5]:
+            conversations = db.query(Conversation).filter(
+                Conversation.user_message.ilike(f"%{keyword}%"),
+                Conversation.created_at >= start_date
+            ).order_by(Conversation.created_at.desc()).limit(10).all()
+            
+            for conv in conversations:
+                usage_timeline.append({
+                    "type": "used_in_conversation",
+                    "timestamp": conv.created_at.isoformat(),
+                    "conversation_id": conv.id,
+                    "user_message": conv.user_message[:100],
+                    "matched_keyword": keyword,
+                })
+    
+    # Sort by timestamp
+    usage_timeline.sort(key=lambda x: x["timestamp"], reverse=True)
+    
+    return {
+        "entry": {
+            "id": entry.id,
+            "question": entry.question,
+            "answer": entry.answer,
+            "keywords": keywords,
+            "intent": entry.intent,
+            "is_active": entry.is_active,
+            "created_at": entry.created_at.isoformat(),
+            "updated_at": entry.updated_at.isoformat(),
+        },
+        "usage_timeline": usage_timeline[:20],
+    }
+
+
 @router.get("/conversations/{conversation_id}")
 async def get_conversation_detail(
     conversation_id: int,
@@ -688,5 +952,269 @@ async def get_leads(
         "page": page,
         "limit": limit,
         "total_pages": (total + limit - 1) // limit,
+    }
+
+
+@router.get("/knowledge")
+async def get_knowledge_base(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    intent: Optional[str] = None,
+    status: Optional[str] = None,  # active, inactive, needs-review
+    search: Optional[str] = None,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get knowledge base entries with intelligence data."""
+    from sqlalchemy import or_
+    import json
+    
+    # For now, use default business_id (can be enhanced with multi-tenant later)
+    default_business_id = 1
+    
+    query = db.query(KnowledgeEntry).filter(KnowledgeEntry.business_id == default_business_id)
+    
+    # Apply filters
+    if intent:
+        query = query.filter(KnowledgeEntry.intent == intent)
+    if status == "active":
+        query = query.filter(KnowledgeEntry.is_active == True)
+    elif status == "inactive":
+        query = query.filter(KnowledgeEntry.is_active == False)
+    if search:
+        query = query.filter(
+            (KnowledgeEntry.question.ilike(f"%{search}%")) |
+            (KnowledgeEntry.answer.ilike(f"%{search}%"))
+        )
+    
+    # Get total count
+    total = query.count()
+    
+    # Apply pagination
+    offset = (page - 1) * limit
+    entries = query.order_by(KnowledgeEntry.updated_at.desc()).offset(offset).limit(limit).all()
+    
+    # Get all intents from conversations
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    # Build response with intelligence data
+    result_entries = []
+    for entry in entries:
+        # Count usage in conversations (simple keyword matching)
+        usage_count = 0
+        keywords = []
+        if entry.keywords:
+            try:
+                keywords = json.loads(entry.keywords) if isinstance(entry.keywords, str) else entry.keywords
+                if keywords and isinstance(keywords, list):
+                    # Count conversations with matching keywords
+                    usage_count = db.query(func.count(Conversation.id)).filter(
+                        Conversation.created_at >= start_date,
+                        or_(*[Conversation.user_message.ilike(f"%{kw}%") for kw in keywords[:3]])
+                    ).scalar() or 0
+            except:
+                keywords = []
+        
+        # Check if entry is linked to intent
+        has_intent_link = entry.intent is not None and entry.intent != ""
+        
+        # Determine quality signals
+        quality_signals = []
+        if usage_count > 10:
+            quality_signals.append("high_performing")
+        elif usage_count == 0:
+            quality_signals.append("unused")
+        if not has_intent_link:
+            quality_signals.append("needs_intent_link")
+        if entry.is_active == False:
+            quality_signals.append("inactive")
+        
+        # Get last used timestamp (simplified - use updated_at for now)
+        last_used = entry.updated_at.isoformat()
+        
+        result_entries.append({
+            "id": entry.id,
+            "question": entry.question,
+            "answer": entry.answer,
+            "keywords": keywords,
+            "intent": entry.intent,
+            "is_active": entry.is_active,
+            "created_at": entry.created_at.isoformat(),
+            "updated_at": entry.updated_at.isoformat(),
+            # Intelligence data
+            "usage_count": usage_count,
+            "quality_signals": quality_signals,
+            "has_intent_link": has_intent_link,
+            "last_used": last_used,
+        })
+    
+    return {
+        "entries": result_entries,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total + limit - 1) // limit,
+    }
+
+
+@router.get("/knowledge/health")
+async def get_knowledge_health(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get knowledge base health and coverage metrics."""
+    default_business_id = 1
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    # Total knowledge entries
+    total_entries = db.query(func.count(KnowledgeEntry.id)).filter(
+        KnowledgeEntry.business_id == default_business_id
+    ).scalar() or 0
+    
+    # Active entries
+    active_entries = db.query(func.count(KnowledgeEntry.id)).filter(
+        KnowledgeEntry.business_id == default_business_id,
+        KnowledgeEntry.is_active == True
+    ).scalar() or 0
+    
+    # Entries with intent links
+    entries_with_intent = db.query(func.count(KnowledgeEntry.id)).filter(
+        KnowledgeEntry.business_id == default_business_id,
+        KnowledgeEntry.intent.isnot(None),
+        KnowledgeEntry.intent != ""
+    ).scalar() or 0
+    
+    # Get all intents from conversations
+    conversation_intents = db.query(Conversation.intent).filter(
+        Conversation.created_at >= start_date
+    ).distinct().all()
+    all_intents = [intent[0] for intent in conversation_intents if intent[0] and intent[0] != "unknown"]
+    
+    # Get intents with knowledge entries
+    knowledge_intents = db.query(KnowledgeEntry.intent).filter(
+        KnowledgeEntry.business_id == default_business_id,
+        KnowledgeEntry.intent.isnot(None),
+        KnowledgeEntry.intent != ""
+    ).distinct().all()
+    knowledge_intent_list = [intent[0] for intent in knowledge_intents]
+    
+    # Intents without knowledge
+    intents_without_knowledge = [intent for intent in all_intents if intent not in knowledge_intent_list]
+    
+    return {
+        "total_entries": total_entries,
+        "active_entries": active_entries,
+        "entries_with_intent": entries_with_intent,
+        "intents_without_knowledge": intents_without_knowledge,
+        "unused_entries_count": 0,  # Would need more complex logic
+        "coverage_percentage": round((len(knowledge_intent_list) / max(len(all_intents), 1)) * 100, 1) if all_intents else 100,
+    }
+
+
+@router.get("/knowledge/mapping")
+async def get_intent_knowledge_mapping(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get intent to knowledge entry mapping."""
+    default_business_id = 1
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    # Get all intents from conversations
+    conversation_intents = db.query(Conversation.intent, func.count(Conversation.id).label("count")).filter(
+        Conversation.created_at >= start_date
+    ).group_by(Conversation.intent).all()
+    
+    # Get all knowledge entries
+    knowledge_entries = db.query(KnowledgeEntry).filter(
+        KnowledgeEntry.business_id == default_business_id
+    ).all()
+    
+    # Build mapping
+    mapping = []
+    for intent, count in conversation_intents:
+        if intent and intent != "unknown":
+            linked_entries = [entry for entry in knowledge_entries if entry.intent == intent]
+            mapping.append({
+                "intent": intent,
+                "conversation_count": count,
+                "knowledge_entries": [
+                    {
+                        "id": entry.id,
+                        "question": entry.question,
+                        "is_active": entry.is_active,
+                    }
+                    for entry in linked_entries
+                ],
+                "has_coverage": len(linked_entries) > 0,
+            })
+    
+    return {
+        "mapping": mapping,
+    }
+
+
+@router.get("/knowledge/{entry_id}")
+async def get_knowledge_entry_detail(
+    entry_id: int,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get detailed knowledge entry with usage data."""
+    default_business_id = 1
+    from sqlalchemy import or_
+    import json
+    
+    entry = db.query(KnowledgeEntry).filter(
+        KnowledgeEntry.id == entry_id,
+        KnowledgeEntry.business_id == default_business_id
+    ).first()
+    
+    if not entry:
+        raise HTTPException(status_code=404, detail="Knowledge entry not found")
+    
+    start_date = datetime.utcnow() - timedelta(days=30)
+    
+    # Get usage timeline
+    keywords = []
+    if entry.keywords:
+        try:
+            keywords = json.loads(entry.keywords) if isinstance(entry.keywords, str) else entry.keywords
+        except:
+            pass
+    
+    # Get conversations with matching keywords
+    usage_timeline = []
+    if keywords and isinstance(keywords, list):
+        for keyword in keywords[:5]:
+            conversations = db.query(Conversation).filter(
+                Conversation.user_message.ilike(f"%{keyword}%"),
+                Conversation.created_at >= start_date
+            ).order_by(Conversation.created_at.desc()).limit(10).all()
+            
+            for conv in conversations:
+                usage_timeline.append({
+                    "type": "used_in_conversation",
+                    "timestamp": conv.created_at.isoformat(),
+                    "conversation_id": conv.id,
+                    "user_message": conv.user_message[:100],
+                    "matched_keyword": keyword,
+                })
+    
+    # Sort by timestamp
+    usage_timeline.sort(key=lambda x: x["timestamp"], reverse=True)
+    
+    return {
+        "entry": {
+            "id": entry.id,
+            "question": entry.question,
+            "answer": entry.answer,
+            "keywords": keywords,
+            "intent": entry.intent,
+            "is_active": entry.is_active,
+            "created_at": entry.created_at.isoformat(),
+            "updated_at": entry.updated_at.isoformat(),
+        },
+        "usage_timeline": usage_timeline[:20],
     }
 
