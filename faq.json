@@ -1,0 +1,55 @@
+[
+    {
+        "question": "What is your pricing?",
+        "answer": "We offer flexible pricing plans to suit different needs. Our basic plan starts at $9/month, our professional plan is $29/month, and our enterprise plan is $99/month. All plans include core features, with additional benefits at higher tiers.",
+        "keywords": ["price", "pricing", "cost", "how much", "fee", "subscription", "plan", "plans"]
+    },
+    {
+        "question": "How do I get started?",
+        "answer": "Getting started is easy! Simply sign up for an account, choose your plan, and you'll be up and running in minutes. We offer a 14-day free trial so you can try all features risk-free.",
+        "keywords": ["start", "getting started", "begin", "sign up", "trial", "free trial", "how to start"]
+    },
+    {
+        "question": "What features are included?",
+        "answer": "Our platform includes core features like real-time messaging, multi-platform support (Telegram, WhatsApp, Instagram), AI-powered responses, conversation memory, and analytics dashboard. Higher tier plans include advanced features like custom integrations and priority support.",
+        "keywords": ["features", "what features", "what's included", "capabilities", "what can it do"]
+    },
+    {
+        "question": "Do you offer customer support?",
+        "answer": "Yes! We offer customer support via email, live chat, and our help center. Professional and Enterprise plan customers get priority support with faster response times. We're here to help you succeed!",
+        "keywords": ["support", "customer support", "help", "contact", "assistance", "help center"]
+    },
+    {
+        "question": "Can I cancel my subscription?",
+        "answer": "Yes, you can cancel your subscription at any time. There are no cancellation fees, and you'll continue to have access until the end of your billing period. You can cancel directly from your account settings.",
+        "keywords": ["cancel", "cancellation", "unsubscribe", "stop subscription", "refund"]
+    },
+    {
+        "question": "Is there a free trial?",
+        "answer": "Yes! We offer a 14-day free trial for all new users. No credit card required to start. You can explore all features during the trial period and decide if our platform is right for you.",
+        "keywords": ["free trial", "trial", "free", "no credit card", "test", "try"]
+    },
+    {
+        "question": "What payment methods do you accept?",
+        "answer": "We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and bank transfers for Enterprise plans. All payments are processed securely through our payment partners.",
+        "keywords": ["payment", "payment methods", "credit card", "paypal", "how to pay", "billing"]
+    },
+    {
+        "question": "How secure is my data?",
+        "answer": "Security is our top priority. We use industry-standard encryption, regular security audits, and comply with GDPR and other data protection regulations. Your data is stored securely and never shared with third parties.",
+        "keywords": ["security", "secure", "privacy", "data protection", "gdpr", "encryption", "safe"]
+    },
+    {
+        "question": "Can I integrate with other tools?",
+        "answer": "Yes! We offer integrations with popular tools like Slack, Zapier, and custom webhooks. Enterprise plans include custom integrations and API access. Check our integrations page for the full list.",
+        "keywords": ["integration", "integrate", "api", "webhook", "zapier", "slack", "connect"]
+    },
+    {
+        "question": "What platforms do you support?",
+        "answer": "We currently support Telegram, with WhatsApp and Instagram coming soon. Our platform is designed to work seamlessly across all major messaging platforms, giving you a unified experience.",
+        "keywords": ["platforms", "telegram", "whatsapp", "instagram", "messaging", "channels", "supported platforms"]
+    }
+]
+
+
+
