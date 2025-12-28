@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 
-const inter = Inter({ subsets: ['latin'] });
-
 export const metadata: Metadata = {
-  title: 'Curie - AI Chatbot Dashboard',
+  title: 'Automify AI - AI Chatbot Dashboard',
   description: 'Multi-channel AI chatbot, support, and marketing automation platform',
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className="font-sans">
         <Providers>{children}</Providers>
       </body>
     </html>

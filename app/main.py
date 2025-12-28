@@ -21,7 +21,7 @@ from app.models import (
 
 init_logging(settings.log_level)
 
-app = FastAPI(title="Curie - Multi-Platform Messaging API", version="0.1.0")
+app = FastAPI(title="Automify AI - Multi-Platform Messaging API", version="0.1.0")
 
 # Add CORS middleware
 # Support both local development and production (Render)
@@ -78,7 +78,7 @@ async def startup_event():
         from app.services.auth import create_user, get_user_by_email
         
         with get_db_context() as db:
-            admin_email = "admin@curie.com"
+            admin_email = "admin@automify.ai"
             existing = get_user_by_email(db, admin_email)
             if not existing:
                 admin_user = create_user(
