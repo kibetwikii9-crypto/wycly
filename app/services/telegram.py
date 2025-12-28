@@ -208,6 +208,7 @@ class TelegramService:
 
 
 # Global service instance
-telegram_service = TelegramService(settings.bot_token)
+# Only initialize if bot_token is provided
+telegram_service = TelegramService(settings.bot_token) if settings.bot_token else None
 
 

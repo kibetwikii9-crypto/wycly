@@ -20,37 +20,48 @@ from app.config import settings
 # Connection string format: postgresql://user:pass@host/dbname
 # We use psycopg3 (postgresql+psycopg://) for Python 3.13 compatibility
 
-if not settings.database_url:
-    raise ValueError(
-        "DATABASE_URL environment variable is required. "
-        "Please set it to your Supabase PostgreSQL connection string."
+# Initialize engine and SessionLocal as None - will be set when database_url is available
+engine = None
+SessionLocal = None
+
+def _initialize_database():
+    """Initialize database connection. Called when database_url is available."""
+    global engine, SessionLocal
+    
+    if engine is not None:
+        return  # Already initialized
+    
+    if not settings.database_url:
+        raise ValueError(
+            "DATABASE_URL environment variable is required. "
+            "Please set it to your Supabase PostgreSQL connection string."
+        )
+
+    # Validate that we're using PostgreSQL (Supabase)
+    if not settings.database_url.startswith("postgresql://"):
+        raise ValueError(
+            f"Invalid DATABASE_URL: '{settings.database_url}'. "
+            "Only PostgreSQL (Supabase) connection strings are supported. "
+            "Format: postgresql://user:password@host:port/database"
+        )
+
+    # Convert postgresql:// to postgresql+psycopg:// for psycopg3 support
+    database_url = settings.database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
+    engine = create_engine(
+        database_url,
+        echo=False,  # Set to True for SQL query logging (useful for debugging)
+        pool_pre_ping=True,  # Verify connections before using them
+        pool_recycle=300,  # Recycle connections after 5 minutes
     )
 
-# Validate that we're using PostgreSQL (Supabase)
-if not settings.database_url.startswith("postgresql://"):
-    raise ValueError(
-        f"Invalid DATABASE_URL: '{settings.database_url}'. "
-        "Only PostgreSQL (Supabase) connection strings are supported. "
-        "Format: postgresql://user:password@host:port/database"
+    # Create session factory
+    # This is used to create database sessions
+    SessionLocal = sessionmaker(
+        autocommit=False,  # Don't auto-commit (we'll commit explicitly)
+        autoflush=False,  # Don't auto-flush (we'll flush explicitly)
+        bind=engine,  # Bind to the engine we created
     )
-
-# Convert postgresql:// to postgresql+psycopg:// for psycopg3 support
-database_url = settings.database_url.replace("postgresql://", "postgresql+psycopg://", 1)
-
-engine = create_engine(
-    database_url,
-    echo=False,  # Set to True for SQL query logging (useful for debugging)
-    pool_pre_ping=True,  # Verify connections before using them
-    pool_recycle=300,  # Recycle connections after 5 minutes
-)
-
-# Create session factory
-# This is used to create database sessions
-SessionLocal = sessionmaker(
-    autocommit=False,  # Don't auto-commit (we'll commit explicitly)
-    autoflush=False,  # Don't auto-flush (we'll flush explicitly)
-    bind=engine,  # Bind to the engine we created
-)
 
 # Create base class for models
 # All database models will inherit from this Base class
@@ -75,6 +86,7 @@ def get_db() -> Generator[Session, None, None]:
     Yields:
         Database session (SQLAlchemy Session object)
     """
+    _initialize_database()
     db = SessionLocal()
     try:
         yield db
@@ -98,6 +110,7 @@ def get_db_context() -> Generator[Session, None, None]:
     Yields:
         Database session (SQLAlchemy Session object)
     """
+    _initialize_database()
     db = SessionLocal()
     try:
         yield db
@@ -118,6 +131,7 @@ def init_db() -> None:
 
     Note: This does NOT handle migrations. For production, use Alembic migrations.
     """
+    _initialize_database()
     Base.metadata.create_all(bind=engine)
 
 
