@@ -1,7 +1,7 @@
 services:
   # Backend API Service (FastAPI)
   - type: web
-    name: automify-ai-backend
+    name: curie-backend
     runtime: python
     plan: free  # Change to 'starter' or 'standard' for production
     buildCommand: pip install -r requirements.txt
@@ -13,15 +13,21 @@ services:
       - key: PUBLIC_URL
         fromService:
           type: web
-          name: automify-ai-backend
+          name: curie-backend
           property: host
       - key: FRONTEND_URL
         fromService:
           type: web
-          name: automify-ai-frontend
+          name: curie-frontend
           property: host
       - key: DATABASE_URL
         sync: false  # Set this manually with your Supabase connection string
+      - key: SECRET_KEY
+        sync: false  # Set this manually - generate a strong random key
+      - key: ADMIN_EMAIL
+        value: admin@curie.com  # Optional: customize admin email
+      - key: ADMIN_PASSWORD
+        sync: false  # Set this manually for admin auto-creation
       - key: LOG_LEVEL
         value: INFO
       - key: OPENAI_API_KEY
@@ -30,7 +36,7 @@ services:
 
   # Frontend Service (Next.js)
   - type: web
-    name: automify-ai-frontend
+    name: curie-frontend
     runtime: node
     plan: free  # Change to 'starter' or 'standard' for production
     buildCommand: cd frontend && npm install && npm run build
@@ -39,6 +45,6 @@ services:
       - key: NEXT_PUBLIC_API_URL
         fromService:
           type: web
-          name: automify-ai-backend
+          name: curie-backend
           property: host
 

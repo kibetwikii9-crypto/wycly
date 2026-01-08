@@ -38,19 +38,14 @@ if frontend_url_env:
     cors_origins.append(frontend_url_env)
 
 # Also add from settings if set
-if hasattr(settings, "frontend_url") and settings.frontend_url:
+if settings.frontend_url:
     cors_origins.append(settings.frontend_url)
 
-# For production, allow common Render frontend URLs
-# Add your specific frontend URL here or via FRONTEND_URL env var
-cors_origins.append("https://curie-frontend-8hvz.onrender.com")
-# Also add automify frontend domain (if you're keeping automify services)
-cors_origins.append("https://automify-ai-frontend.onrender.com")
-
-# In production, if FRONTEND_URL is not set, allow all origins (less secure but works)
-# Remove this in production and set FRONTEND_URL explicitly
-if not frontend_url_env and not (hasattr(settings, "frontend_url") and settings.frontend_url):
-    # Allow all origins in development (not recommended for production)
+# In development (localhost), allow all origins for easier testing
+# In production, FRONTEND_URL must be set explicitly
+is_production = os.getenv("ENVIRONMENT", "").lower() in ["production", "prod"] or not settings.public_url.startswith("http://localhost")
+if not is_production and not frontend_url_env and not settings.frontend_url:
+    # Only allow all origins in local development
     cors_origins = ["*"]
 
 app.add_middleware(
@@ -79,20 +74,26 @@ async def startup_event():
         from app.database import get_db_context
         from app.services.auth import create_user, get_user_by_email
         
-        with get_db_context() as db:
-            admin_email = "admin@curie.com"
-            existing = get_user_by_email(db, admin_email)
-            if not existing:
-                admin_user = create_user(
-                    db,
-                    email=admin_email,
-                    password="admin123",
-                    full_name="Admin User",
-                    role="admin"
-                )
-                print(f"✅ Admin user auto-created: {admin_email} / admin123")
-            else:
-                print(f"✅ Admin user already exists: {admin_email}")
+        admin_email = settings.admin_email
+        admin_password = settings.admin_password
+        
+        # Only auto-create admin if password is provided
+        if admin_password:
+            with get_db_context() as db:
+                existing = get_user_by_email(db, admin_email)
+                if not existing:
+                    admin_user = create_user(
+                        db,
+                        email=admin_email,
+                        password=admin_password,
+                        full_name="Admin User",
+                        role="admin"
+                    )
+                    print(f"✅ Admin user auto-created: {admin_email}")
+                else:
+                    print(f"✅ Admin user already exists: {admin_email}")
+        else:
+            print(f"⚠️  Admin password not set (ADMIN_PASSWORD env var). Skipping admin auto-creation.")
     except Exception as e:
         print(f"⚠️  Admin user creation error: {e}")
         # Don't fail startup if admin creation fails

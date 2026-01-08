@@ -121,7 +121,7 @@ async def telegram_webhook(update: TelegramUpdate):
         # Step 5: Send reply using processor-generated text
         # This MUST happen before saving conversation to ensure user receives reply
         # Bot behavior is unchanged - reply is sent regardless of what happens next
-        if chat_id and telegram_service:
+        if chat_id:
             try:
                 # Ensure chat_id is an int (Telegram API requires int)
                 chat_id_int = int(chat_id) if chat_id is not None else None
@@ -137,8 +137,6 @@ async def telegram_webhook(update: TelegramUpdate):
                 log.error(f"chat_id_conversion_failed chat_id={chat_id} error={type(e).__name__}")
             except Exception as e:
                 log.error(f"send_message_error chat_id={chat_id} error={type(e).__name__} message={str(e)}", exc_info=True)
-        elif not telegram_service:
-            log.warning("telegram_service_not_initialized BOT_TOKEN not set in environment variables")
         else:
             log.warning(f"no_chat_id user_id={normalized_message.user_id}")
 

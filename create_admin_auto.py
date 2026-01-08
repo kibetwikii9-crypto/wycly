@@ -2,7 +2,7 @@
 
 This script creates an admin user without interactive input.
 Default credentials:
-- Email: admin@automify.ai
+- Email: admin@curie.com
 - Password: admin123
 - Role: admin
 """
@@ -11,7 +11,7 @@ from app.database import get_db_context, init_db
 from app.services.auth import create_user, get_user_by_email
 
 def main():
-    email = "admin@automify.ai"
+    email = "admin@curie.com"
     password = "admin123"
     full_name = "Admin User"
 
