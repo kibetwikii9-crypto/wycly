@@ -87,8 +87,8 @@ git push -u origin main
 
 1. Render will automatically detect `render.yaml` in your repository
 2. You'll see a preview of the services:
-   - `curie-backend` (FastAPI)
-   - `curie-frontend` (Next.js)
+   - `automify-ai-backend` (FastAPI)
+   - `automify-ai-frontend` (Next.js)
    - **Note**: No database service (we're using Supabase!)
 3. Click **"Apply"** to create the services
 
@@ -100,15 +100,17 @@ git push -u origin main
 
 While services are deploying, set environment variables:
 
-#### **For Backend Service (`curie-backend`):**
+#### **For Backend Service (`automify-ai-backend`):**
 
-1. Go to your **Dashboard** → Click on **`curie-backend`** service
+1. Go to your **Dashboard** → Click on **`automify-ai-backend`** service
 2. Go to **"Environment"** tab
 3. Add/Update these variables:
 
 ```
 BOT_TOKEN = your_telegram_bot_token_here
 DATABASE_URL = postgresql://postgres:yourpassword@db.xxxxx.supabase.co:5432/postgres
+SECRET_KEY = your_strong_secret_key_here
+ADMIN_PASSWORD = your_secure_admin_password
 LOG_LEVEL = INFO
 OPENAI_API_KEY = (leave empty)
 ```
@@ -117,14 +119,16 @@ OPENAI_API_KEY = (leave empty)
 - Replace `yourpassword` with your Supabase database password
 - Replace `xxxxx` with your Supabase project reference
 - Get the full connection string from Supabase dashboard (Settings → Database → Connection string → URI)
+- Generate a strong `SECRET_KEY` (use: `python -c "import secrets; print(secrets.token_urlsafe(32))"`)
+- Set `ADMIN_PASSWORD` for admin auto-creation
 
 **Note**: These are auto-set by Render:
 - `PUBLIC_URL` (your backend URL)
 - `FRONTEND_URL` (your frontend URL)
 
-#### **For Frontend Service (`curie-frontend`):**
+#### **For Frontend Service (`automify-ai-frontend`):**
 
-1. Go to **Dashboard** → Click on **`curie-frontend`** service
+1. Go to **Dashboard** → Click on **`automify-ai-frontend`** service
 2. Go to **"Environment"** tab
 3. `NEXT_PUBLIC_API_URL` is automatically set by Render (no action needed)
 
@@ -146,8 +150,8 @@ OPENAI_API_KEY = (leave empty)
 
 After deployment, you'll get URLs like:
 
-- **Backend**: `https://curie-backend-xxxx.onrender.com`
-- **Frontend**: `https://curie-frontend-xxxx.onrender.com`
+- **Backend**: `https://automify-ai-backend-xxxx.onrender.com`
+- **Frontend**: `https://automify-ai-frontend-xxxx.onrender.com`
 
 **Save these URLs!** You'll need them.
 
@@ -187,18 +191,18 @@ python create_admin_auto.py
 
 ### **Step 11: Update Telegram Webhook**
 
-1. Get your backend URL: `https://curie-backend-xxxx.onrender.com`
+1. Get your backend URL: `https://automify-ai-backend-xxxx.onrender.com`
 2. Update Telegram webhook:
 
 **Option A: Using Browser**
 ```
-https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=https://curie-backend-xxxx.onrender.com/telegram/webhook
+https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=https://automify-ai-backend-xxxx.onrender.com/telegram/webhook
 ```
 
 **Option B: Using PowerShell**
 ```powershell
 $botToken = "your_bot_token_here"
-$webhookUrl = "https://curie-backend-xxxx.onrender.com/telegram/webhook"
+$webhookUrl = "https://automify-ai-backend-xxxx.onrender.com/telegram/webhook"
 Invoke-WebRequest -Uri "https://api.telegram.org/bot$botToken/setWebhook?url=$webhookUrl"
 ```
 
@@ -208,15 +212,15 @@ Invoke-WebRequest -Uri "https://api.telegram.org/bot$botToken/setWebhook?url=$we
 
 ### **Step 12: Test Your Deployment**
 
-1. **Test Backend**: Visit `https://curie-backend-xxxx.onrender.com/health`
+1. **Test Backend**: Visit `https://automify-ai-backend-xxxx.onrender.com/health`
    - Should return: `{"status":"ok"}`
 
-2. **Test Frontend**: Visit `https://curie-frontend-xxxx.onrender.com`
+2. **Test Frontend**: Visit `https://automify-ai-frontend-xxxx.onrender.com`
    - Should show login page
 
 3. **Test Login**:
-   - Email: `admin@curie.com`
-   - Password: `admin123`
+   - Email: `admin@curie.com` (or your ADMIN_EMAIL env var)
+   - Password: (your ADMIN_PASSWORD env var)
 
 4. **Test Telegram Bot**: Send a message to your Telegram bot
    - Should receive a response

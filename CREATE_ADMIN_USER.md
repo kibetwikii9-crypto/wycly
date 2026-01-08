@@ -11,7 +11,7 @@ The admin user doesn't exist automatically. You need to create it once after dep
 ### **Step 1: Open Render Shell**
 
 1. Go to **Render Dashboard**: https://dashboard.render.com
-2. Click on your **Backend Service** (`curie-backend`)
+2. Click on your **Backend Service** (`automify-ai-backend`)
 3. Click on the **"Shell"** tab (in the left sidebar)
 4. Click **"Connect"** to open a shell session
 
@@ -88,10 +88,10 @@ python create_admin_auto.py
 
 ## ✅ **After Creating Admin User**
 
-1. Go to your frontend: `https://curie-frontend-8hvz.onrender.com/login`
+1. Go to your frontend: `https://automify-ai-frontend.onrender.com/login` (or your actual frontend URL)
 2. Login with:
    - Email: `admin@curie.com`
-   - Password: `admin123`
+   - Password: (use the password you set via ADMIN_PASSWORD env var)
 3. You should be redirected to the dashboard
 
 ---

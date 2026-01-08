@@ -42,7 +42,7 @@ If you see "upgrade" messages or slow responses:
 You can use a service like **UptimeRobot** (free) to ping your service every 5 minutes:
 
 1. Sign up at https://uptimerobot.com (free)
-2. Add a monitor for: `https://curie-backend.onrender.com/health`
+2. Add a monitor for: `https://automify-ai-backend-xxxx.onrender.com/health`
 3. Set interval to 5 minutes
 4. This keeps your service awake
 
@@ -94,7 +94,7 @@ Your Supabase connection should work fine on free tier. If you see database conn
 
 ### **1. Use Health Check Endpoint**
 - Render automatically pings `/health` to keep service awake
-- Your service already has this: `https://curie-backend.onrender.com/health`
+- Your service already has this: `https://automify-ai-backend-xxxx.onrender.com/health`
 
 ### **2. Accept the Delay**
 - First request after spin-down: 30-60 seconds
@@ -133,8 +133,8 @@ Consider upgrading to **Starter** plan ($7/month) if:
 - 💤 Services sleep after 15 minutes of inactivity
 
 **Your Setup:**
-- ✅ Backend: `https://curie-backend.onrender.com`
-- ✅ Frontend: `https://curie-frontend-8hvz.onrender.com`
+- ✅ Backend: `https://automify-ai-backend-xxxx.onrender.com`
+- ✅ Frontend: `https://automify-ai-frontend-xxxx.onrender.com`
 - ✅ Database: Supabase (external, no limits)
 - ✅ Bot: Works (wakes up on webhook)
 

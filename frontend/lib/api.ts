@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Normalize NEXT_PUBLIC_API_URL so accidental relative values (like
-// "/curie-backend" or bare hostnames) don't produce requests
+// "/automify-ai-backend" or bare hostnames) don't produce requests
 // that target the frontend host and produce 404s. This will also
 // remove trailing slashes.
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -23,7 +23,7 @@ function normalizeApiUrl(raw: string): string {
     return `https://${raw.replace(/^\/+/, '')}`;
   }
 
-  // Bare hostname (e.g. curie-backend or backend.example.com)
+  // Bare hostname (e.g. automify-ai-backend or backend.example.com)
   if (/^[\w.-]+$/.test(raw)) {
     return `https://${raw.replace(/\/+$/u, '')}`;
   }

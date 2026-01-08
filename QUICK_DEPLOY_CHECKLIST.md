@@ -34,15 +34,17 @@ _________________________________________________________
 
 ### **3.2: Set Environment Variables**
 
-**Backend Service (`curie-backend`):**
+**Backend Service (`automify-ai-backend`):**
 
-Go to: **Dashboard → curie-backend → Environment tab**
+Go to: **Dashboard → automify-ai-backend → Environment tab**
 
 Add these variables:
 
 ```
 BOT_TOKEN = your_telegram_bot_token_here
 DATABASE_URL = postgresql://postgres:password@db.xxxxx.supabase.co:5432/postgres
+SECRET_KEY = your_strong_secret_key_here
+ADMIN_PASSWORD = your_secure_admin_password
 LOG_LEVEL = INFO
 OPENAI_API_KEY = (leave empty)
 ```
@@ -50,8 +52,10 @@ OPENAI_API_KEY = (leave empty)
 **⚠️ Important:**
 - Replace `your_telegram_bot_token_here` with your actual Telegram bot token
 - Replace the `DATABASE_URL` with your Supabase connection string (from Step 1)
+- Generate a strong `SECRET_KEY` (use: `python -c "import secrets; print(secrets.token_urlsafe(32))"`)
+- Set `ADMIN_PASSWORD` for admin auto-creation
 
-**Frontend Service (`curie-frontend`):**
+**Frontend Service (`automify-ai-frontend`):**
 - [ ] No manual variables needed (auto-configured)
 
 ### **3.3: Wait for Deployment**
@@ -66,22 +70,22 @@ After deployment, save these URLs:
 
 **Backend URL:**
 ```
-https://curie-backend-xxxx.onrender.com
+https://automify-ai-backend-xxxx.onrender.com
 ```
 
 **Frontend URL:**
 ```
-https://curie-frontend-xxxx.onrender.com
+https://automify-ai-frontend-xxxx.onrender.com
 ```
 
 ---
 
 ## ✅ **STEP 4: Verify Deployment**
 
-- [ ] Test backend: Visit `https://curie-backend-xxxx.onrender.com/health`
+- [ ] Test backend: Visit `https://automify-ai-backend-xxxx.onrender.com/health`
   - Should return: `{"status":"ok"}`
 
-- [ ] Test frontend: Visit `https://curie-frontend-xxxx.onrender.com`
+- [ ] Test frontend: Visit `https://automify-ai-frontend-xxxx.onrender.com`
   - Should show login page
 
 - [ ] Check backend logs for: `✅ Database initialized successfully`
@@ -95,24 +99,24 @@ https://curie-frontend-xxxx.onrender.com
 3. [ ] Verify admin user created
 
 **Login Credentials:**
-- Email: `admin@curie.com`
-- Password: `admin123`
+- Email: `admin@curie.com` (or your ADMIN_EMAIL env var)
+- Password: (the password you set in ADMIN_PASSWORD env var)
 
 ---
 
 ## ✅ **STEP 6: Update Telegram Webhook**
 
-1. [ ] Get your backend URL: `https://curie-backend-xxxx.onrender.com`
+1. [ ] Get your backend URL: `https://automify-ai-backend-xxxx.onrender.com`
 2. [ ] Update webhook using this URL (replace YOUR_BOT_TOKEN):
 
 ```
-https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=https://curie-backend-xxxx.onrender.com/telegram/webhook
+https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=https://automify-ai-backend-xxxx.onrender.com/telegram/webhook
 ```
 
 Or use PowerShell:
 ```powershell
 $botToken = "your_bot_token_here"
-$webhookUrl = "https://curie-backend-xxxx.onrender.com/telegram/webhook"
+$webhookUrl = "https://automify-ai-backend-xxxx.onrender.com/telegram/webhook"
 Invoke-WebRequest -Uri "https://api.telegram.org/bot$botToken/setWebhook?url=$webhookUrl"
 ```
 
@@ -120,7 +124,7 @@ Invoke-WebRequest -Uri "https://api.telegram.org/bot$botToken/setWebhook?url=$we
 
 ## ✅ **STEP 7: Final Testing**
 
-- [ ] Login to dashboard: `admin@curie.com` / `admin123`
+- [ ] Login to dashboard: `admin@curie.com` / (your ADMIN_PASSWORD)
 - [ ] Send message to Telegram bot
 - [ ] Verify bot responds
 - [ ] Check Supabase dashboard → Table Editor → See tables created

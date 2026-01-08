@@ -16,7 +16,7 @@ Invoke-RestMethod -Uri "https://api.telegram.org/bot$botToken/getWebhookInfo"
 {
   "ok": true,
   "result": {
-    "url": "https://curie-backend-xxxx.onrender.com/telegram/webhook",
+    "url": "https://automify-ai-backend-xxxx.onrender.com/telegram/webhook",
     "has_custom_certificate": false,
     "pending_update_count": 0
   }
@@ -32,14 +32,14 @@ Invoke-RestMethod -Uri "https://api.telegram.org/bot$botToken/getWebhookInfo"
 ### **Step 2: Set the Webhook**
 
 **Get your backend URL from Render:**
-- Go to Render dashboard → Backend service
-- Copy the service URL (e.g., `https://curie-backend-xxxx.onrender.com`)
+- Go to Render dashboard → Backend service (`automify-ai-backend`)
+- Copy the service URL (e.g., `https://automify-ai-backend-xxxx.onrender.com`)
 
 **Set the webhook:**
 
 ```powershell
 $botToken = "YOUR_BOT_TOKEN"
-$backendUrl = "https://curie-backend-xxxx.onrender.com"  # Replace with your actual backend URL
+$backendUrl = "https://automify-ai-backend-xxxx.onrender.com"  # Replace with your actual backend URL
 $webhookUrl = "$backendUrl/telegram/webhook"
 
 Invoke-RestMethod -Uri "https://api.telegram.org/bot$botToken/setWebhook?url=$webhookUrl"
@@ -92,13 +92,13 @@ Test if the webhook endpoint is accessible:
 
 **In Browser:**
 ```
-https://curie-backend-xxxx.onrender.com/health
+https://automify-ai-backend-xxxx.onrender.com/health
 ```
 Should return: `{"status":"ok"}`
 
 **Test webhook endpoint (should return 422 - that's OK, it means endpoint exists):**
 ```
-https://curie-backend-xxxx.onrender.com/telegram/webhook
+https://automify-ai-backend-xxxx.onrender.com/telegram/webhook
 ```
 Should return: `{"detail": [...]}` (422 error is expected without a payload)
 
@@ -116,7 +116,7 @@ Should return: `{"detail": [...]}` (422 error is expected without a payload)
 **Solution:**
 ```powershell
 $botToken = "YOUR_BOT_TOKEN"
-$backendUrl = "https://curie-backend-xxxx.onrender.com"
+$backendUrl = "https://automify-ai-backend-xxxx.onrender.com"
 Invoke-RestMethod -Uri "https://api.telegram.org/bot$botToken/setWebhook?url=$backendUrl/telegram/webhook"
 ```
 
@@ -198,7 +198,7 @@ Save this as `test_bot.ps1`:
 ```powershell
 # Test Telegram Bot Setup
 $botToken = "YOUR_BOT_TOKEN"
-$backendUrl = "https://curie-backend-xxxx.onrender.com"
+$backendUrl = "https://automify-ai-backend-xxxx.onrender.com"
 
 Write-Host "=== Testing Telegram Bot Setup ===" -ForegroundColor Green
 Write-Host ""
