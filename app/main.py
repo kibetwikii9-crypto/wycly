@@ -84,6 +84,9 @@ app.include_router(api_router)
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on application startup."""
+    # Log CORS configuration for debugging
+    print(f"🌐 CORS origins configured: {cors_origins}")
+    
     # Initialize database (create tables)
     try:
         init_db()
