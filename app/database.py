@@ -42,6 +42,9 @@ engine = create_engine(
     echo=False,  # Set to True for SQL query logging (useful for debugging)
     pool_pre_ping=True,  # Verify connections before using them
     pool_recycle=300,  # Recycle connections after 5 minutes
+    connect_args={
+        "prepare_threshold": 0,  # Disable prepared statements to avoid psycopg3 DuplicatePreparedStatement errors
+    },
 )
 
 # Create session factory

@@ -67,7 +67,11 @@ async def startup_event():
         init_db()
         print("✅ Database initialized successfully")
     except Exception as e:
-        print(f"⚠️  Database initialization error: {e}")
+        # Ignore DuplicatePreparedStatement errors (non-critical, tables already exist)
+        if "DuplicatePreparedStatement" in str(e) or "already exists" in str(e).lower():
+            print("✅ Database tables already exist (skipping initialization)")
+        else:
+            print(f"⚠️  Database initialization error: {e}")
     
     # Auto-create admin user if it doesn't exist
     try:
