@@ -153,3 +153,4 @@ Write-Host "3. Check Render logs for any errors when messages are sent" -Foregro
 Write-Host "4. Send a test message to your bot and check logs" -ForegroundColor White
 Write-Host ""
 
+

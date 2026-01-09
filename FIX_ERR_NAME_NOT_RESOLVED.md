@@ -86,3 +86,4 @@ NEXT_PUBLIC_API_URL=https://automify-ai-backend-abc123.onrender.com
 
 If you see this, it's configured correctly! 🎉
 
+

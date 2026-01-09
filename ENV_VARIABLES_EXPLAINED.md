@@ -171,3 +171,4 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 - Check `PUBLIC_URL` in root `.env` (local) or Render dashboard (production)
 - Should be full URL with `https://` on Render
 
+

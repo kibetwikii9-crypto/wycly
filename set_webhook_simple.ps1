@@ -75,3 +75,4 @@ Write-Host "2. Send a test message to your bot" -ForegroundColor White
 Write-Host "3. Check Render logs: https://dashboard.render.com → automify-ai-backend → Logs" -ForegroundColor White
 Write-Host ""
 
+
