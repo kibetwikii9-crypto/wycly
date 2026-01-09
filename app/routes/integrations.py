@@ -159,26 +159,61 @@ async def connect_telegram(
     
     # Set webhook automatically
     from app.config import settings
-    webhook_url = f"{settings.public_url}/telegram/webhook"
+    
+    # Validate PUBLIC_URL is set
+    if not settings.public_url or settings.public_url == "http://localhost:8000":
+        log.error("PUBLIC_URL is not set or is localhost. Cannot set webhook for production.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Backend URL (PUBLIC_URL) is not configured. Please set PUBLIC_URL environment variable to your backend URL (e.g., https://automify-ai-backend.onrender.com)."
+        )
+    
+    # Ensure webhook URL is HTTPS (Telegram requires HTTPS)
+    webhook_url = f"{settings.public_url.rstrip('/')}/telegram/webhook"
+    if not webhook_url.startswith("https://"):
+        log.error(f"Webhook URL must be HTTPS, got: {webhook_url}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Webhook URL must use HTTPS. Current URL: {webhook_url}. Please set PUBLIC_URL to an HTTPS URL."
+        )
     
     try:
         set_webhook_url = f"https://api.telegram.org/bot{request.bot_token}/setWebhook?url={webhook_url}"
+        log.info(f"Setting webhook for bot @{bot_username} to: {webhook_url}")
+        
         async with httpx.AsyncClient() as client:
             response = await client.get(set_webhook_url, timeout=10.0)
             response.raise_for_status()
             webhook_result = response.json()
             
             if not webhook_result.get("ok"):
+                error_description = webhook_result.get('description', 'Unknown error')
+                log.error(f"Telegram API error setting webhook: {error_description}")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Failed to set webhook: {webhook_result.get('description', 'Unknown error')}"
+                    detail=f"Failed to set webhook: {error_description}"
                 )
-            log.info(f"Webhook set successfully for bot @{bot_username}")
-    except Exception as e:
-        log.error(f"Error setting webhook: {e}", exc_info=True)
+            log.info(f"Webhook set successfully for bot @{bot_username} to {webhook_url}")
+    except httpx.HTTPStatusError as e:
+        log.error(f"HTTP error setting webhook: {e.response.status_code} - {e.response.text}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Bot token is valid but failed to set webhook. Please try again."
+            detail=f"Failed to set webhook: HTTP {e.response.status_code}. Check that PUBLIC_URL is correct and accessible."
+        )
+    except httpx.RequestError as e:
+        log.error(f"Network error setting webhook: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Network error while setting webhook: {str(e)}. Please check your internet connection and try again."
+        )
+    except HTTPException:
+        # Re-raise HTTPExceptions (like the one above for webhook_result.get("ok"))
+        raise
+    except Exception as e:
+        log.error(f"Unexpected error setting webhook: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unexpected error setting webhook: {str(e)}. Please check Render logs for details."
         )
     
     # Check if integration already exists
