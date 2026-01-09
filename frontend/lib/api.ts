@@ -34,6 +34,12 @@ function normalizeApiUrl(raw: string): string {
 
 const API_BASE_URL = normalizeApiUrl(rawApiUrl);
 
+// Debug: Log the API URL being used (remove after debugging)
+if (typeof window !== 'undefined') {
+  console.log('API Base URL:', API_BASE_URL);
+  console.log('Raw API URL from env:', rawApiUrl);
+}
+
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
