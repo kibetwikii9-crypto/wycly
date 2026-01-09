@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, Response
+from fastapi.exceptions import RequestValidationError
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.logging_config import init_logging
@@ -132,7 +135,44 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
+
+# Add middleware to ensure CORS headers are always present, even on errors
+class CORSHeaderMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        origin = request.headers.get("origin", "")
+        response = await call_next(request)
+        
+        # Add CORS headers if origin is allowed
+        if origin in cors_origins or "*" in cors_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin if origin in cors_origins else "*"
+            response.headers["Access-Control-Allow-Credentials"] = "true" if not allow_all_origins and origin in cors_origins else "false"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+        
+        return response
+
+app.add_middleware(CORSHeaderMiddleware)
+
+# Add explicit OPTIONS handler for all routes to ensure CORS preflight works
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str, request: Request):
+    """Handle OPTIONS preflight requests explicitly."""
+    origin = request.headers.get("origin", "")
+    # Check if origin is allowed
+    if origin in cors_origins or "*" in cors_origins:
+        return JSONResponse(
+            content={"message": "OK"},
+            headers={
+                "Access-Control-Allow-Origin": origin if origin in cors_origins else "*",
+                "Access-Control-Allow-Credentials": "true" if not allow_all_origins and origin in cors_origins else "false",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Max-Age": "3600",
+            }
+        )
+    return JSONResponse(content={"message": "OK"})
 
 app.include_router(api_router)
 
