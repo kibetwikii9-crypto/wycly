@@ -9,7 +9,7 @@ from datetime import datetime
 
 from app.database import get_db
 from app.models import ChannelIntegration, Business, User as UserModel
-from app.services.auth import get_current_user
+from app.routes.auth import get_current_user
 import httpx
 
 log = logging.getLogger(__name__)
