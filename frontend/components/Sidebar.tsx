@@ -19,6 +19,7 @@ import {
   Shield,
   Bell,
   CheckCircle2,
+  ShoppingBag,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Knowledge Base', href: '/dashboard/knowledge', icon: BookOpen },
   { name: 'AI Rules', href: '/dashboard/ai-rules', icon: Zap },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Sales & Products', href: '/dashboard/sales-products', icon: ShoppingBag, comingSoon: true },
   { name: 'Ad Studio', href: '/dashboard/ads', icon: Video },
   { name: 'Integrations', href: '/dashboard/integrations', icon: Plug, comingSoon: true },
   { name: 'Users & Roles', href: '/dashboard/users', icon: Users, comingSoon: true },
@@ -91,7 +93,9 @@ export default function Sidebar() {
                       {item.name}
                     </div>
                     {item.comingSoon && (
-                      <span className="text-xs text-gray-400 dark:text-gray-500">Soon</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-medium">
+                        Soon
+                      </span>
                     )}
                   </Link>
                 );

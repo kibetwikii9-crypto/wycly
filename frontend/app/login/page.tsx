@@ -22,7 +22,10 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed');
+      // Show the actual error message
+      const errorMessage = err.message || err.response?.data?.detail || 'Login failed. Please check your credentials and try again.';
+      setError(errorMessage);
+      console.error('Login error details:', err);
     } finally {
       setIsLoading(false);
     }

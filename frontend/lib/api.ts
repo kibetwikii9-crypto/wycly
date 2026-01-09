@@ -23,8 +23,12 @@ function normalizeApiUrl(raw: string): string {
     return `https://${raw.replace(/^\/+/, '')}`;
   }
 
-  // Bare hostname (e.g. automify-ai-backend or backend.example.com)
-  if (/^[\w.-]+$/.test(raw)) {
+  // Bare hostname (e.g. automify-ai-backend.onrender.com or just automify-ai-backend)
+  // Render's fromService with property:host returns hostname without protocol
+  if (/^[\w.-]+(\.[\w.-]+)*$/.test(raw)) {
+    // If it contains a dot, it's likely a full hostname (e.g., automify-ai-backend.onrender.com)
+    // If no dot, it might be just the service name (e.g., automify-ai-backend)
+    // For Render, we assume https://
     return `https://${raw.replace(/\/+$/u, '')}`;
   }
 
@@ -36,8 +40,22 @@ const API_BASE_URL = normalizeApiUrl(rawApiUrl);
 
 // Debug: Log the API URL being used (remove after debugging)
 if (typeof window !== 'undefined') {
-  console.log('API Base URL:', API_BASE_URL);
-  console.log('Raw API URL from env:', rawApiUrl);
+  console.log('🔍 API Configuration Debug:');
+  console.log('  Raw API URL from env:', rawApiUrl || '(not set)');
+  console.log('  Normalized API Base URL:', API_BASE_URL);
+  
+  // Warn if URL looks wrong
+  if (!rawApiUrl || rawApiUrl === 'http://localhost:8000') {
+    console.warn('⚠️ NEXT_PUBLIC_API_URL is not set or using localhost default!');
+    console.warn('   This will fail on Render. Set it in Render dashboard environment variables.');
+  }
+  
+  if (rawApiUrl && !rawApiUrl.includes('://') && !rawApiUrl.includes('.')) {
+    console.error('❌ ERROR: NEXT_PUBLIC_API_URL appears to be just a service name!');
+    console.error('   Current value:', rawApiUrl);
+    console.error('   Expected format: https://automify-ai-backend-xxxx.onrender.com');
+    console.error('   Fix: Set NEXT_PUBLIC_API_URL in Render dashboard to the full backend URL');
+  }
 }
 
 export const api = axios.create({
@@ -58,10 +76,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 errors
+// Handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle network errors (like ERR_NAME_NOT_RESOLVED)
+    if (error.code === 'ERR_NETWORK' || error.message?.includes('ERR_NAME_NOT_RESOLVED')) {
+      console.error('❌ Network Error: Cannot connect to backend API');
+      console.error('   API URL:', API_BASE_URL);
+      console.error('   This usually means:');
+      console.error('   1. NEXT_PUBLIC_API_URL is not set correctly in Render');
+      console.error('   2. Frontend needs to be rebuilt after setting env var');
+      console.error('   3. Backend service is not running');
+      console.error('   Fix: Check Render dashboard → automify-ai-frontend → Environment tab');
+    }
+    
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('access_token');

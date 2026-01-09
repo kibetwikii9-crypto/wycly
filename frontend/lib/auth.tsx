@@ -53,28 +53,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
-    const params = new URLSearchParams();
-    params.append('username', email);
-    params.append('password', password);
+    try {
+      const params = new URLSearchParams();
+      params.append('username', email);
+      params.append('password', password);
 
-    const response = await api.post('/api/auth/login', params, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
+      console.log('Attempting login to:', api.defaults.baseURL + '/api/auth/login');
+      
+      const response = await api.post('/api/auth/login', params, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
 
-    if (!response.data || !response.data.access_token) {
-      throw new Error('Invalid response from server');
-    }
+      if (!response.data || !response.data.access_token) {
+        throw new Error('Invalid response from server');
+      }
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('access_token', response.data.access_token);
-    }
-    
-    if (response.data.user) {
-      setUser(response.data.user);
-    } else {
-      throw new Error('User data not received');
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('access_token', response.data.access_token);
+      }
+      
+      if (response.data.user) {
+        setUser(response.data.user);
+      } else {
+        throw new Error('User data not received');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      // Provide more detailed error messages
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        throw new Error('Cannot connect to server. Please check if the backend is running and the API URL is correct.');
+      }
+      
+      if (error.response) {
+        // Server responded with error
+        const message = error.response.data?.detail || error.response.data?.message || 'Login failed';
+        throw new Error(message);
+      }
+      
+      // Generic error
+      throw error;
     }
   };
 
