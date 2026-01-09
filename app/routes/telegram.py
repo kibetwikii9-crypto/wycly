@@ -44,12 +44,18 @@ async def telegram_webhook(update: TelegramUpdate):
     normalized_message = None
     chat_id = None
 
-    # Log incoming webhook
+    # Log incoming webhook with more details
     try:
         update_id = getattr(update, "update_id", "unknown")
-        log.info(f"webhook_received update_id={update_id}")
-    except Exception:
-        pass  # Don't fail on logging
+        has_message = bool(getattr(update, "message", None))
+        has_channel_post = bool(getattr(update, "channel_post", None))
+        log.info(
+            f"webhook_received update_id={update_id} "
+            f"has_message={has_message} has_channel_post={has_channel_post}"
+        )
+    except Exception as log_error:
+        log.warning(f"webhook_logging_error error={type(log_error).__name__}")
+        # Don't fail on logging
 
     try:
         # Step 1: Immediately normalize Telegram payload to platform-agnostic format
@@ -71,12 +77,24 @@ async def telegram_webhook(update: TelegramUpdate):
             log.warning("normalization_failed reason=no_message_data")
             # Try to extract chat_id from raw update for sending default response
             try:
-                if update.message:
-                    chat_id = update.message.get("chat", {}).get("id")
-                elif update.channel_post:
-                    chat_id = update.channel_post.get("chat", {}).get("id")
+                # Handle both dict and Pydantic model access
+                message_data = update.message if hasattr(update, 'message') and update.message else None
+                if not message_data:
+                    message_data = update.channel_post if hasattr(update, 'channel_post') and update.channel_post else None
+                
+                if message_data:
+                    # Convert to dict if it's a Pydantic model
+                    if hasattr(message_data, 'dict'):
+                        message_data = message_data.dict()
+                    elif hasattr(message_data, 'model_dump'):
+                        message_data = message_data.model_dump()
+                    
+                    if isinstance(message_data, dict):
+                        chat_id = message_data.get("chat", {}).get("id") if isinstance(message_data.get("chat"), dict) else None
+                    else:
+                        log.warning(f"message_data_not_dict type={type(message_data)}")
             except Exception as e:
-                log.error(f"chat_id_extraction_failed error={type(e).__name__}")
+                log.error(f"chat_id_extraction_failed error={type(e).__name__} message={str(e)}", exc_info=True)
             
             # Send safe default response if we have chat_id
             if chat_id:
@@ -114,8 +132,28 @@ async def telegram_webhook(update: TelegramUpdate):
         # Metadata contains platform-specific data needed for sending replies
         try:
             chat_id = normalized_message.metadata.get("chat_id") if normalized_message.metadata else None
+            if not chat_id:
+                # Fallback: try to extract from raw update if metadata doesn't have it
+                log.warning(f"chat_id_not_in_metadata user_id={normalized_message.user_id} attempting_fallback")
+                try:
+                    # Handle both dict and Pydantic model access
+                    message_data = update.message if hasattr(update, 'message') and update.message else None
+                    if not message_data:
+                        message_data = update.channel_post if hasattr(update, 'channel_post') and update.channel_post else None
+                    
+                    if message_data:
+                        # Convert to dict if it's a Pydantic model
+                        if hasattr(message_data, 'dict'):
+                            message_data = message_data.dict()
+                        elif hasattr(message_data, 'model_dump'):
+                            message_data = message_data.model_dump()
+                        
+                        if isinstance(message_data, dict):
+                            chat_id = message_data.get("chat", {}).get("id") if isinstance(message_data.get("chat"), dict) else None
+                except Exception as fallback_error:
+                    log.error(f"fallback_chat_id_extraction_failed error={type(fallback_error).__name__} message={str(fallback_error)}", exc_info=True)
         except Exception as e:
-            log.error(f"chat_id_extraction_failed error={type(e).__name__}")
+            log.error(f"chat_id_extraction_failed error={type(e).__name__}", exc_info=True)
             chat_id = None
 
         # Step 5: Send reply using processor-generated text
@@ -126,19 +164,20 @@ async def telegram_webhook(update: TelegramUpdate):
                 # Ensure chat_id is an int (Telegram API requires int)
                 chat_id_int = int(chat_id) if chat_id is not None else None
                 if chat_id_int:
+                    log.info(f"attempting_reply chat_id={chat_id_int} user_id={normalized_message.user_id} reply_length={len(reply_text)}")
                     send_success = await telegram_service.send_message(chat_id_int, reply_text)
                     if send_success:
                         log.info(f"reply_sent chat_id={chat_id_int} user_id={normalized_message.user_id}")
                     else:
-                        log.warning(f"reply_send_failed chat_id={chat_id_int} user_id={normalized_message.user_id}")
+                        log.error(f"reply_send_failed chat_id={chat_id_int} user_id={normalized_message.user_id} - Check BOT_TOKEN and Render logs")
                 else:
-                    log.warning(f"invalid_chat_id chat_id={chat_id} user_id={normalized_message.user_id}")
+                    log.error(f"invalid_chat_id chat_id={chat_id} user_id={normalized_message.user_id} type={type(chat_id)}")
             except (ValueError, TypeError) as e:
-                log.error(f"chat_id_conversion_failed chat_id={chat_id} error={type(e).__name__}")
+                log.error(f"chat_id_conversion_failed chat_id={chat_id} error={type(e).__name__} message={str(e)}", exc_info=True)
             except Exception as e:
                 log.error(f"send_message_error chat_id={chat_id} error={type(e).__name__} message={str(e)}", exc_info=True)
         else:
-            log.warning(f"no_chat_id user_id={normalized_message.user_id}")
+            log.error(f"no_chat_id user_id={normalized_message.user_id} metadata={normalized_message.metadata}")
 
     except Exception as e:
         # Catch-all for any unexpected errors in the main flow
@@ -171,5 +210,31 @@ async def telegram_webhook(update: TelegramUpdate):
             log.error(f"conversation_save_error user_id={normalized_message.user_id} error={type(e).__name__}", exc_info=True)
 
     return {"ok": True}
+
+
+@router.post("/test-send", status_code=status.HTTP_200_OK)
+async def test_send_message(chat_id: int, message: str = "Test message from Automify bot"):
+    """
+    Test endpoint to verify bot can send messages.
+    
+    This is a diagnostic endpoint to test if:
+    1. BOT_TOKEN is configured correctly
+    2. Bot can send messages to a specific chat_id
+    
+    Usage:
+    POST /telegram/test-send?chat_id=YOUR_CHAT_ID&message=Your test message
+    """
+    try:
+        log.info(f"test_send_requested chat_id={chat_id} message_length={len(message)}")
+        send_success = await telegram_service.send_message(chat_id, message)
+        if send_success:
+            log.info(f"test_message_sent chat_id={chat_id}")
+            return {"ok": True, "message": "Test message sent successfully", "chat_id": chat_id}
+        else:
+            log.error(f"test_message_failed chat_id={chat_id}")
+            return {"ok": False, "error": "Failed to send test message. Check BOT_TOKEN and Render logs.", "chat_id": chat_id}
+    except Exception as e:
+        log.error(f"test_send_error chat_id={chat_id} error={type(e).__name__} message={str(e)}", exc_info=True)
+        return {"ok": False, "error": f"Error sending test message: {str(e)}", "chat_id": chat_id}
 
 

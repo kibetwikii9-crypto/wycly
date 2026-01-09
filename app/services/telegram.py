@@ -198,12 +198,25 @@ class TelegramService:
                 response.raise_for_status()
                 return True
         except httpx.HTTPStatusError as e:
+            error_detail = ""
+            try:
+                error_detail = e.response.json()
+            except:
+                error_detail = e.response.text if hasattr(e.response, 'text') else str(e)
+            
             log.error(
-                f"HTTP error sending message to chat_id {chat_id}: {e.response.status_code}"
+                f"HTTP error sending message to chat_id {chat_id}: {e.response.status_code} - {error_detail}"
             )
+            # Log specific error codes
+            if e.response.status_code == 401:
+                log.error("Bot token is invalid or unauthorized. Check BOT_TOKEN environment variable.")
+            elif e.response.status_code == 403:
+                log.error("Bot is blocked by user or doesn't have permission to send messages.")
+            elif e.response.status_code == 400:
+                log.error(f"Bad request: {error_detail}")
             return False
         except Exception as e:
-            log.error(f"Failed to send message to chat_id {chat_id}: {e}")
+            log.error(f"Failed to send message to chat_id {chat_id}: {type(e).__name__}: {e}", exc_info=True)
             return False
 
 

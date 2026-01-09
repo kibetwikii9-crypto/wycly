@@ -1,6 +1,31 @@
 'use client';
 
-import { Plug, CheckCircle2, Clock, AlertCircle, ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plug, CheckCircle2, Clock, AlertCircle, ExternalLink, Settings, MessageSquare, XCircle } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+import { api } from '@/lib/api';
+import ConnectTelegramModal from '@/components/ConnectTelegramModal';
+
+interface Integration {
+  id: number;
+  channel: string;
+  channel_name: string | null;
+  is_active: boolean;
+  webhook_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TelegramStatus {
+  connected: boolean;
+  webhook_url?: string | null;
+  pending_updates?: number;
+  last_error_date?: number | null;
+  last_error_message?: string | null;
+  bot_username?: string | null;
+  integration_id?: number | null;
+  message?: string | null;
+}
 
 const channels = [
   {
@@ -23,8 +48,8 @@ const channels = [
   },
   {
     name: 'Telegram',
-    status: 'connected',
-    description: 'Telegram bot integration (currently active)',
+    status: 'available', // Will be updated dynamically
+    description: 'Telegram bot integration',
     icon: '✈️',
   },
   {
@@ -36,6 +61,121 @@ const channels = [
 ];
 
 export default function IntegrationsPage() {
+  const { user } = useAuth();
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTestLoading, setIsTestLoading] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+  const [testSuccess, setTestSuccess] = useState(false);
+
+  // Check if user can manage integrations
+  const canManage = user?.role === 'admin' || user?.role === 'business_owner';
+
+  // Fetch integrations and Telegram status
+  const fetchIntegrations = async () => {
+    if (!canManage) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const [integrationsRes, statusRes] = await Promise.all([
+        api.get('/api/integrations/'),
+        api.get('/api/integrations/telegram/status').catch(() => ({ data: { connected: false } })),
+      ]);
+
+      setIntegrations(integrationsRes.data || []);
+      setTelegramStatus(statusRes.data);
+    } catch (error: any) {
+      console.error('Error fetching integrations:', error);
+      // If 403, user doesn't have permission - that's okay
+      if (error.response?.status !== 403) {
+        setTelegramStatus({ connected: false, message: 'Failed to load status' });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchIntegrations();
+  }, [canManage]);
+
+  const handleConnectSuccess = () => {
+    fetchIntegrations();
+    setTestError(null);
+    setTestSuccess(false);
+  };
+
+  const handleTestMessage = async () => {
+    if (!telegramStatus?.bot_username) {
+      setTestError('Bot username not available');
+      return;
+    }
+
+    setIsTestLoading(true);
+    setTestError(null);
+    setTestSuccess(false);
+
+    try {
+      // For testing, we need a chat_id. In a real scenario, you'd get this from a conversation
+      // For now, we'll show a message that user needs to send a message first
+      setTestError('To test, send a message to your bot first, then check if you receive a reply.');
+    } catch (error: any) {
+      setTestError(error.response?.data?.detail || 'Failed to send test message');
+    } finally {
+      setIsTestLoading(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect Telegram? This will stop receiving messages.')) {
+      return;
+    }
+
+    try {
+      await api.delete('/api/integrations/telegram/disconnect');
+      fetchIntegrations();
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Failed to disconnect Telegram');
+    }
+  };
+
+  // Determine Telegram status
+  const getTelegramStatus = () => {
+    if (isLoading) return 'loading';
+    if (!telegramStatus) return 'not_connected';
+    if (telegramStatus.connected) {
+      if (telegramStatus.last_error_message) return 'error';
+      return 'connected';
+    }
+    return 'not_connected';
+  };
+
+  const telegramStatusValue = getTelegramStatus();
+
+  if (!canManage) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Integrations & Channels
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Connect and manage your communication channels
+          </p>
+        </div>
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <p className="text-sm text-yellow-800 dark:text-yellow-300">
+            Only Admin and Business Owner roles can manage integrations.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -47,16 +187,16 @@ export default function IntegrationsPage() {
         </p>
       </div>
 
-      {/* Coming Soon Banner */}
+      {/* Coming Soon Banner for other channels */}
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
         <div className="flex items-start gap-3">
           <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
           <div>
             <h3 className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-1">
-              Multi-Channel Integration Coming Soon
+              Multi-Channel Integration
             </h3>
             <p className="text-sm text-blue-700 dark:text-blue-400">
-              We're working on expanding channel support. Additional integrations will be available in a future update.
+              Additional channel integrations (WhatsApp, Instagram, Messenger) will be available in future updates.
             </p>
           </div>
         </div>
@@ -64,58 +204,159 @@ export default function IntegrationsPage() {
 
       {/* Channel Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {channels.map((channel) => (
-          <div
-            key={channel.name}
-            className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 p-6"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="text-3xl">{channel.icon}</div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {channel.name}
-                  </h3>
-                  {channel.status === 'connected' && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 mt-1">
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Connected
+        {channels.map((channel) => {
+          // Special handling for Telegram
+          if (channel.name === 'Telegram') {
+            return (
+              <div
+                key={channel.name}
+                className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="text-3xl">{channel.icon}</div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {channel.name}
+                      </h3>
+                      {telegramStatusValue === 'connected' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 mt-1">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Connected
+                        </span>
+                      )}
+                      {telegramStatusValue === 'not_connected' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mt-1">
+                          Not Connected
+                        </span>
+                      )}
+                      {telegramStatusValue === 'error' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 mt-1">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Error
+                        </span>
+                      )}
+                      {telegramStatusValue === 'loading' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mt-1">
+                          Loading...
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  {channel.description}
+                  {telegramStatus?.bot_username && (
+                    <span className="block mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Bot: @{telegramStatus.bot_username}
                     </span>
                   )}
-                  {channel.status === 'coming_soon' && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 mt-1">
-                      <Clock className="h-3 w-3 mr-1" />
-                      Coming Soon
-                    </span>
+                </p>
+
+                {/* Status Details */}
+                {telegramStatusValue === 'connected' && telegramStatus && (
+                  <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
+                    <p className="text-xs text-green-700 dark:text-green-300">
+                      ✅ Your bot is now connected and ready to handle conversations
+                    </p>
+                    {telegramStatus.pending_updates !== undefined && telegramStatus.pending_updates > 0 && (
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                        ⚠️ {telegramStatus.pending_updates} pending updates
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {telegramStatusValue === 'error' && telegramStatus?.last_error_message && (
+                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-xs text-red-700 dark:text-red-300">
+                      ⚠️ {telegramStatus.last_error_message}
+                    </p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="space-y-2">
+                  {telegramStatusValue === 'connected' ? (
+                    <>
+                      <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="w-full inline-flex items-center justify-center px-4 py-2 border border-[#007FFF] text-[#007FFF] dark:text-[#007FFF] bg-[#007FFF]/10 dark:bg-[#007FFF]/20 hover:bg-[#007FFF]/20 dark:hover:bg-[#007FFF]/30 rounded-md text-sm font-medium transition-colors"
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Reconnect / Configure
+                      </button>
+                      <button
+                        onClick={handleDisconnect}
+                        className="w-full inline-flex items-center justify-center px-4 py-2 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md text-sm font-medium transition-colors"
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setIsModalOpen(true)}
+                      disabled={telegramStatusValue === 'loading'}
+                      className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent bg-[#007FFF] hover:bg-[#0066CC] text-white rounded-md text-sm font-medium shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plug className="h-4 w-4 mr-2" />
+                      Connect
+                    </button>
                   )}
                 </div>
               </div>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              {channel.description}
-            </p>
-            <button
-              disabled={channel.status === 'coming_soon'}
-              className={`w-full inline-flex items-center justify-center px-4 py-2 border rounded-md text-sm font-medium ${
-                channel.status === 'connected'
-                  ? 'border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-100 dark:hover:bg-primary-900/30'
-                  : 'border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-700 cursor-not-allowed'
-              }`}
+            );
+          }
+
+          // Other channels (coming soon)
+          return (
+            <div
+              key={channel.name}
+              className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 p-6"
             >
-              {channel.status === 'connected' ? (
-                <>
-                  <Plug className="h-4 w-4 mr-2" />
-                  Configure
-                </>
-              ) : (
-                <>
-                  <Clock className="h-4 w-4 mr-2" />
-                  Available Soon
-                </>
-              )}
-            </button>
-          </div>
-        ))}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">{channel.icon}</div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {channel.name}
+                    </h3>
+                    {channel.status === 'coming_soon' && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 mt-1">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Coming Soon
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                {channel.description}
+              </p>
+              <button
+                disabled={channel.status === 'coming_soon'}
+                className={`w-full inline-flex items-center justify-center px-4 py-2 border rounded-md text-sm font-medium ${
+                  channel.status === 'coming_soon'
+                    ? 'border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-700 cursor-not-allowed'
+                    : 'border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-100 dark:hover:bg-primary-900/30'
+                }`}
+              >
+                {channel.status === 'coming_soon' ? (
+                  <>
+                    <Clock className="h-4 w-4 mr-2" />
+                    Available Soon
+                  </>
+                ) : (
+                  <>
+                    <Plug className="h-4 w-4 mr-2" />
+                    Configure
+                  </>
+                )}
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       {/* Integration Readiness */}
@@ -126,11 +367,11 @@ export default function IntegrationsPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
             <span className="text-sm text-gray-700 dark:text-gray-300">API Authentication</span>
-            <span className="text-sm font-medium text-gray-900 dark:text-white">Planned</span>
+            <span className="text-sm font-medium text-green-600 dark:text-green-400">Active</span>
           </div>
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
             <span className="text-sm text-gray-700 dark:text-gray-300">Webhook Management</span>
-            <span className="text-sm font-medium text-gray-900 dark:text-white">Planned</span>
+            <span className="text-sm font-medium text-green-600 dark:text-green-400">Active</span>
           </div>
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
             <span className="text-sm text-gray-700 dark:text-gray-300">Multi-Channel Routing</span>
@@ -138,7 +379,13 @@ export default function IntegrationsPage() {
           </div>
         </div>
       </div>
+
+      {/* Connect Telegram Modal */}
+      <ConnectTelegramModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleConnectSuccess}
+      />
     </div>
   );
 }
-
