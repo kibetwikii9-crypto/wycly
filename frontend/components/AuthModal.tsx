@@ -204,19 +204,38 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }: Au
     setSignUpErrors({});
 
     try {
-      // TODO: Implement sign up API call
-      // For now, simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call the register API endpoint
+      const { api } = await import('@/lib/api');
+      const response = await api.post('/api/auth/register', {
+        email: signUpData.email,
+        password: signUpData.password,
+        full_name: signUpData.fullName,
+        role: 'agent', // Default role
+      });
+
+      // Show success message and switch to sign in tab
+      setSignUpErrors({ submit: 'Account created successfully! Please sign in with your credentials.' });
       
-      // Show success message and redirect to sign in
-      setSignUpErrors({ submit: 'Account created successfully! Please sign in.' });
+      // Pre-fill email in sign-in form
+      setSignInData({ email: signUpData.email, password: '' });
+      
+      // Clear sign-up form
+      setSignUpData({ fullName: '', email: '', password: '', confirmPassword: '' });
+      setSignUpTerms(false);
+      
+      // Switch to sign-in tab after a short delay
       setTimeout(() => {
         setActiveTab('signin');
-        setSignUpData({ fullName: '', email: '', password: '', confirmPassword: '' });
         setSignUpErrors({});
+        // Focus on password field in sign-in
+        setTimeout(() => {
+          const passwordInput = document.getElementById('signin-password');
+          passwordInput?.focus();
+        }, 100);
       }, 2000);
     } catch (err: any) {
-      setSignUpErrors({ submit: err.message || 'Sign up failed. Please try again.' });
+      const errorMessage = err.response?.data?.detail || err.message || 'Sign up failed. Please try again.';
+      setSignUpErrors({ submit: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -234,7 +253,12 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }: Au
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm backdrop-enter"
-        onClick={onClose}
+        onClick={(e) => {
+          // Only close if not loading and no errors are showing
+          if (!isLoading && !signInErrors.submit && !signUpErrors.submit) {
+            onClose();
+          }
+        }}
         aria-hidden="true"
       />
 
@@ -247,8 +271,14 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }: Au
         >
           {/* Close Button */}
           <button
-            onClick={onClose}
-            className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-[#007FFF] rounded-lg p-1"
+            onClick={() => {
+              // Only allow closing if not loading
+              if (!isLoading) {
+                onClose();
+              }
+            }}
+            disabled={isLoading}
+            className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-[#007FFF] rounded-lg p-1 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Close modal"
           >
             <X className="h-6 w-6" />
@@ -308,8 +338,9 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }: Au
 
                 <form onSubmit={handleSignInSubmit} className="space-y-4" noValidate>
                   {signInErrors.submit && (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
-                      {signInErrors.submit}
+                    <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm font-medium flex items-start gap-2">
+                      <span className="flex-shrink-0 mt-0.5">⚠️</span>
+                      <span>{signInErrors.submit}</span>
                     </div>
                   )}
 
@@ -421,12 +452,15 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }: Au
 
                 <form onSubmit={handleSignUpSubmit} className="space-y-4" noValidate>
                   {signUpErrors.submit && (
-                    <div className={`px-4 py-3 rounded-lg text-sm ${
+                    <div className={`px-4 py-3 rounded-lg text-sm font-medium flex items-start gap-2 ${
                       signUpErrors.submit.includes('successfully')
-                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-400'
-                        : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400'
+                        ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 text-green-800 dark:text-green-300'
+                        : 'bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300'
                     }`}>
-                      {signUpErrors.submit}
+                      <span className="flex-shrink-0 mt-0.5">
+                        {signUpErrors.submit.includes('successfully') ? '✓' : '⚠️'}
+                      </span>
+                      <span>{signUpErrors.submit}</span>
                     </div>
                   )}
 
