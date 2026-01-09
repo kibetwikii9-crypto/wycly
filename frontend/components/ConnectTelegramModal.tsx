@@ -14,6 +14,7 @@ export default function ConnectTelegramModal({ isOpen, onClose, onSuccess }: Con
   const [botToken, setBotToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -22,6 +23,7 @@ export default function ConnectTelegramModal({ isOpen, onClose, onSuccess }: Con
     if (isOpen) {
       setBotToken('');
       setError(null);
+      setSuccess(false);
       setIsLoading(false);
       setShowHelp(false);
       // Focus input after a short delay
@@ -69,6 +71,8 @@ export default function ConnectTelegramModal({ isOpen, onClose, onSuccess }: Con
     }
 
     setIsLoading(true);
+    setError(null);
+    setSuccess(false);
 
     try {
       const response = await api.post('/api/integrations/telegram/connect', {
@@ -76,15 +80,32 @@ export default function ConnectTelegramModal({ isOpen, onClose, onSuccess }: Con
       });
 
       if (response.status === 200 || response.status === 201) {
-        // Success - close modal and refresh status
+        // Show success message
+        setSuccess(true);
+        setError(null);
+        
+        // Refresh integrations list
         onSuccess();
-        onClose();
+        
+        // Close modal after a short delay to show success message
+        setTimeout(() => {
+          onClose();
+        }, 1500);
       } else {
         setError('Failed to connect Telegram bot. Please try again.');
+        inputRef.current?.focus();
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Failed to connect Telegram bot. Please try again.';
-      setError(errorMessage);
+      // Handle 401/403 errors specifically
+      if (err.response?.status === 401) {
+        setError('Your session has expired. Please sign in again.');
+        // Don't close modal on auth error - let user see the error
+      } else if (err.response?.status === 403) {
+        setError('You do not have permission to connect integrations. Only Admin and Business Owner roles can connect channels.');
+      } else {
+        const errorMessage = err.response?.data?.detail || err.message || 'Failed to connect Telegram bot. Please try again.';
+        setError(errorMessage);
+      }
       inputRef.current?.focus();
     } finally {
       setIsLoading(false);
@@ -203,6 +224,14 @@ export default function ConnectTelegramModal({ isOpen, onClose, onSuccess }: Con
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Success Message */}
+              {success && (
+                <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-400 dark:border-green-700 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
+                  <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <span>Telegram bot connected successfully! The modal will close shortly...</span>
+                </div>
+              )}
+
               {/* Error Message */}
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
