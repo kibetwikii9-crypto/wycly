@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import TimeAgo from '@/components/TimeAgo';
 import {
   MessageSquare,
   Users,
@@ -102,12 +103,20 @@ interface OverviewData {
 }
 
 export default function DashboardPage() {
-  const { data, isLoading } = useQuery<OverviewData>({
+  const { data, isLoading, refetch } = useQuery<OverviewData>({
     queryKey: ['dashboard', 'overview'],
     queryFn: async () => {
       const response = await api.get('/api/dashboard/overview');
       return response.data;
     },
+    // Auto-refresh every 30 seconds when page is visible
+    refetchInterval: 30000, // 30 seconds
+    // Only refetch when tab/window is visible (saves resources)
+    refetchIntervalInBackground: false,
+    // Refetch when window regains focus
+    refetchOnWindowFocus: true,
+    // Don't refetch on reconnect if data is fresh (less than 30 seconds old)
+    staleTime: 30000,
   });
 
   if (isLoading) {
@@ -186,30 +195,39 @@ export default function DashboardPage() {
     return `${displayHour}:00 ${period}`;
   };
 
-  const formatTimeAgo = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Overview
-        </h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Your chatbot performance at a glance
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Overview
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Your chatbot performance at a glance
+            <span className="ml-2 text-xs text-gray-500 dark:text-gray-500">
+              (Auto-refreshes every 30s)
+            </span>
+          </p>
+        </div>
+        <button
+          onClick={() => refetch()}
+          disabled={isLoading}
+          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          title="Refresh data"
+        >
+          {isLoading ? (
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 dark:border-gray-400 mr-2"></div>
+              Refreshing...
+            </div>
+          ) : (
+            <div className="flex items-center">
+              <Activity className="h-4 w-4 mr-2" />
+              Refresh
+            </div>
+          )}
+        </button>
       </div>
 
       {/* Stats Grid */}
@@ -589,7 +607,7 @@ export default function DashboardPage() {
                         {activity.description}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        {formatTimeAgo(activity.timestamp)}
+                        <TimeAgo timestamp={activity.timestamp} />
                       </p>
                     </div>
                   </div>

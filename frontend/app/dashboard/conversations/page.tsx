@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useState, useEffect } from 'react';
+import TimeAgo from '@/components/TimeAgo';
 import {
   MessageSquare,
   Search,
@@ -141,6 +142,11 @@ export default function ConversationsPage() {
       return response.data;
     },
     enabled: selectedConversationId !== null,
+    // Auto-refresh conversation detail every 30 seconds
+    refetchInterval: selectedConversationId !== null ? 30000 : false,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   // Filter conversations by search query
@@ -190,20 +196,6 @@ export default function ConversationsPage() {
     return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
   };
 
-  const formatTimeAgo = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
 
   // Load notes from localStorage on mount
   useEffect(() => {
@@ -363,7 +355,7 @@ export default function ConversationsPage() {
                       </span>
                     </div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatTimeAgo(conv.created_at)}
+                      <TimeAgo timestamp={conv.created_at} />
                     </span>
                   </div>
 
@@ -472,7 +464,7 @@ export default function ConversationsPage() {
                     )}
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    User ID: {conversationDetail.conversation.user_id} • {formatTimeAgo(conversationDetail.conversation.created_at)}
+                    User ID: {conversationDetail.conversation.user_id} • <TimeAgo timestamp={conversationDetail.conversation.created_at} />
                   </p>
                 </div>
                 <button
@@ -591,7 +583,7 @@ export default function ConversationsPage() {
                       </div>
                       <p className="text-sm">{msg.text}</p>
                       <p className="text-xs opacity-75 mt-1">
-                        {formatTimeAgo(msg.timestamp)}
+                        <TimeAgo timestamp={msg.timestamp} />
                       </p>
                     </div>
                   </div>
@@ -728,7 +720,7 @@ export default function ConversationsPage() {
                       </p>
                     )}
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {formatTimeAgo(event.timestamp)}
+                      <TimeAgo timestamp={event.timestamp} />
                     </p>
                   </div>
                 </div>

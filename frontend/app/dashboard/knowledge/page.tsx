@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useState } from 'react';
+import TimeAgo from '@/components/TimeAgo';
 import {
   Plus,
   Search,
@@ -84,6 +85,10 @@ export default function KnowledgePage() {
       const response = await api.get(`/api/dashboard/knowledge?${params}`);
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: healthData } = useQuery<KnowledgeHealth>({
@@ -92,6 +97,10 @@ export default function KnowledgePage() {
       const response = await api.get('/api/dashboard/knowledge/health');
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: mappingData } = useQuery<{ mapping: IntentMapping[] }>({
@@ -100,6 +109,10 @@ export default function KnowledgePage() {
       const response = await api.get('/api/dashboard/knowledge/mapping');
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: entryDetail } = useQuery({
@@ -109,6 +122,10 @@ export default function KnowledgePage() {
       return response.data;
     },
     enabled: selectedEntryId !== null,
+    refetchInterval: selectedEntryId !== null ? 30000 : false,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const getQualitySignalColor = (signal: string) => {
@@ -141,20 +158,6 @@ export default function KnowledgePage() {
     }
   };
 
-  const formatTimeAgo = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
 
   const exportKnowledge = () => {
     if (!data) return;
@@ -429,7 +432,7 @@ export default function KnowledgePage() {
                       )}
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        <span>Updated {formatTimeAgo(entry.updated_at)}</span>
+                        <span>Updated <TimeAgo timestamp={entry.updated_at} /></span>
                       </div>
                     </div>
 
@@ -548,7 +551,7 @@ export default function KnowledgePage() {
                               Used in conversation
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {event.user_message} • {formatTimeAgo(event.timestamp)}
+                              {event.user_message} • <TimeAgo timestamp={event.timestamp} />
                             </p>
                           </div>
                         </div>

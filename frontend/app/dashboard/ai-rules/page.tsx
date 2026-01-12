@@ -3,6 +3,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useState } from 'react';
+import TimeAgo from '@/components/TimeAgo';
 import {
   Plus,
   Save,
@@ -105,6 +106,10 @@ export default function AIRulesPage() {
       const response = await api.get('/api/dashboard/ai-rules/coverage');
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: effectivenessData } = useQuery<{ rules: RuleEffectiveness[] }>({
@@ -113,6 +118,10 @@ export default function AIRulesPage() {
       const response = await api.get('/api/dashboard/ai-rules/effectiveness');
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: confidenceData } = useQuery<{ signals: ConfidenceSignal[]; fallback_rate: number; total_conversations: number }>({
@@ -121,6 +130,10 @@ export default function AIRulesPage() {
       const response = await api.get('/api/dashboard/ai-rules/confidence');
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: flowData } = useQuery<{ flow: AutomationFlow }>({
@@ -129,6 +142,10 @@ export default function AIRulesPage() {
       const response = await api.get('/api/dashboard/ai-rules/flow');
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: recommendationsData } = useQuery<{ recommendations: RuleRecommendation[] }>({
@@ -137,6 +154,10 @@ export default function AIRulesPage() {
       const response = await api.get('/api/dashboard/ai-rules/recommendations');
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const testMutation = useMutation({
@@ -184,21 +205,6 @@ export default function AIRulesPage() {
     }
   };
 
-  const formatTimeAgo = (timestamp: string | null) => {
-    if (!timestamp) return 'Never';
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
 
   return (
     <div className="space-y-6">
@@ -436,7 +442,7 @@ export default function AIRulesPage() {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                     <Clock className="h-3 w-3" />
-                    Last triggered: {formatTimeAgo(rule.last_triggered)}
+                    Last triggered: {rule.last_triggered ? <TimeAgo timestamp={rule.last_triggered} /> : 'Never'}
                   </div>
                 </div>
               ))}

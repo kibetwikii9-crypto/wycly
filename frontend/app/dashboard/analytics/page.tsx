@@ -37,13 +37,17 @@ export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState(30);
   const [selectedChannel, setSelectedChannel] = useState<string>('');
 
-  // Existing queries
+  // Existing queries with auto-refresh
   const { data: intentData } = useQuery({
     queryKey: ['analytics', 'intents', timeRange],
     queryFn: async () => {
       const response = await api.get(`/api/dashboard/analytics/intents?days=${timeRange}`);
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: timelineData } = useQuery({
@@ -52,15 +56,23 @@ export default function AnalyticsPage() {
       const response = await api.get(`/api/dashboard/analytics/timeline?days=${timeRange}`);
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
-  // New extended analytics queries
+  // New extended analytics queries with auto-refresh
   const { data: performanceSummary } = useQuery({
     queryKey: ['analytics', 'performance-summary', timeRange],
     queryFn: async () => {
       const response = await api.get(`/api/dashboard/analytics/performance-summary?days=${timeRange}`);
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: conversationFlow } = useQuery({
@@ -69,6 +81,10 @@ export default function AnalyticsPage() {
       const response = await api.get(`/api/dashboard/analytics/conversation-flow?days=${timeRange}`);
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: intentPerformance } = useQuery({
@@ -77,6 +93,10 @@ export default function AnalyticsPage() {
       const response = await api.get(`/api/dashboard/analytics/intent-performance?days=${timeRange}`);
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: channelEfficiency } = useQuery({
@@ -85,6 +105,10 @@ export default function AnalyticsPage() {
       const response = await api.get(`/api/dashboard/analytics/channel-efficiency?days=${timeRange}`);
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: automationEffectiveness } = useQuery({
@@ -93,6 +117,10 @@ export default function AnalyticsPage() {
       const response = await api.get(`/api/dashboard/analytics/automation-effectiveness?days=${timeRange}`);
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: leadOutcomes } = useQuery({
@@ -101,6 +129,10 @@ export default function AnalyticsPage() {
       const response = await api.get(`/api/dashboard/analytics/lead-outcomes?days=${timeRange}`);
       return response.data;
     },
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   const { data: timeBehavior } = useQuery({
