@@ -42,12 +42,21 @@ engine = create_engine(
     echo=False,  # Set to True for SQL query logging (useful for debugging)
     pool_pre_ping=True,  # Verify connections before using them
     pool_recycle=300,  # Recycle connections after 5 minutes
+    pool_size=5,  # Limit pool size to reduce connection issues
+    max_overflow=10,  # Allow up to 10 overflow connections
     connect_args={
         "prepare_threshold": 0,  # Disable prepared statements to avoid psycopg3 DuplicatePreparedStatement errors
         "connect_timeout": 10,  # Connection timeout in seconds
+        "server_settings": {
+            "application_name": "automify_backend",
+        },
     },
     # Force IPv4 if DNS resolution fails (Windows sometimes has IPv6 issues)
     poolclass=None,  # Use default connection pool
+    # Disable statement caching to avoid prepared statement conflicts
+    execution_options={
+        "autocommit": False,
+    },
 )
 
 # Create session factory
@@ -72,6 +81,7 @@ def get_db() -> Generator[Session, None, None]:
     - Is automatically created for each request
     - Is automatically closed after the request
     - Can be used as a FastAPI dependency
+    - Handles DuplicatePreparedStatement errors gracefully
 
     Usage in FastAPI routes:
         @router.get("/users")
@@ -84,6 +94,21 @@ def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
+    except Exception as e:
+        # Handle DuplicatePreparedStatement errors by invalidating the connection
+        if "DuplicatePreparedStatement" in str(e) or "prepared statement" in str(e).lower():
+            db.rollback()
+            # Invalidate the connection to force a new one
+            db.connection().invalidate()
+            # Retry once
+            try:
+                yield db
+            except Exception:
+                db.rollback()
+                raise
+        else:
+            db.rollback()
+            raise
     finally:
         db.close()
 
@@ -95,6 +120,7 @@ def get_db_context() -> Generator[Session, None, None]:
 
     This provides a database session that can be used with
     Python's 'with' statement for manual session management.
+    Handles DuplicatePreparedStatement errors gracefully.
 
     Usage:
         with get_db_context() as db:
@@ -108,8 +134,14 @@ def get_db_context() -> Generator[Session, None, None]:
     try:
         yield db
         db.commit()
-    except Exception:
+    except Exception as e:
         db.rollback()
+        # Handle DuplicatePreparedStatement errors by invalidating the connection
+        if "DuplicatePreparedStatement" in str(e) or "prepared statement" in str(e).lower():
+            try:
+                db.connection().invalidate()
+            except Exception:
+                pass
         raise
     finally:
         db.close()
