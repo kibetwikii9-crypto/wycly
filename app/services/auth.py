@@ -85,34 +85,37 @@ def create_user(db: Session, email: str, password: str, full_name: str = None, r
     """
     hashed_password = get_password_hash(password)
     
-    # If role is business_owner and no business_id provided, create a new Business
-    if role == "business_owner" and business_id is None:
-        business_name = full_name or email.split("@")[0]  # Use name or email prefix as business name
-        business = Business(
-            name=business_name,
-            owner_id=None,  # Will be set after user is created
-            settings=None,
-        )
-        db.add(business)
-        db.flush()  # Flush to get business.id without committing
-        business_id = business.id
-    
+    # Create user first (without business_id if we need to create business)
     user = User(
         email=email,
         hashed_password=hashed_password,
         full_name=full_name,
         role=role,
-        business_id=business_id if role != "admin" else None,  # Admin users don't have business_id
+        business_id=None,  # Will be set after business is created
         is_active=True,
     )
     db.add(user)
-    db.flush()  # Flush to get user.id
+    db.flush()  # Flush to get user.id without committing
     
-    # If we created a Business, update its owner_id
-    if role == "business_owner" and business_id:
-        business = db.query(Business).filter(Business.id == business_id).first()
-        if business:
-            business.owner_id = user.id
+    # If role is business_owner and no business_id provided, create a new Business
+    if role == "business_owner" and business_id is None:
+        business_name = full_name or email.split("@")[0]  # Use name or email prefix as business name
+        business = Business(
+            name=business_name,
+            owner_id=user.id,  # Now we have user.id, so we can set owner_id
+            settings=None,
+        )
+        db.add(business)
+        db.flush()  # Flush to get business.id without committing
+        business_id = business.id
+        
+        # Update user with business_id
+        user.business_id = business_id
+    
+    # For admin users, business_id stays None
+    # For other roles with provided business_id, update it
+    elif business_id is not None:
+        user.business_id = business_id
     
     db.commit()
     db.refresh(user)
