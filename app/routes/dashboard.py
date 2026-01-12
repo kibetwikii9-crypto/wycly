@@ -8,8 +8,8 @@ from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Conversation, Lead, AnalyticsEvent, ChannelIntegration, User as UserModel, Message, ConversationMemory, KnowledgeEntry, AdAsset
-from app.routes.auth import get_current_user
+from app.models import Conversation, Lead, AnalyticsEvent, ChannelIntegration, User as UserModel, Message, ConversationMemory, KnowledgeEntry, AdAsset, Business
+from app.routes.auth import get_current_user, get_user_business_id
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
@@ -22,28 +22,37 @@ async def get_overview(
     db: Session = Depends(get_db),
 ):
     """Get dashboard overview statistics with extended insights."""
+    # Get user's business_id (None for admin = can see all)
+    business_id = get_user_business_id(current_user, db)
+    
     start_date = datetime.utcnow() - timedelta(days=days)
     last_24h = datetime.utcnow() - timedelta(hours=24)
 
+    # Build base query filters
+    conv_filter = Conversation.created_at >= start_date
+    lead_filter = Lead.created_at >= start_date
+    
+    # Filter by business_id if user is not admin
+    if business_id is not None:
+        conv_filter = and_(conv_filter, Conversation.business_id == business_id)
+        lead_filter = and_(lead_filter, Lead.business_id == business_id)
+
     # Total conversations
-    total_conversations = db.query(func.count(Conversation.id)).filter(
-        Conversation.created_at >= start_date
-    ).scalar() or 0
+    total_conversations = db.query(func.count(Conversation.id)).filter(conv_filter).scalar() or 0
 
     # Active chats (conversations in last 24 hours)
-    active_chats = db.query(func.count(Conversation.id)).filter(
-        Conversation.created_at >= last_24h
-    ).scalar() or 0
+    active_chats_filter = Conversation.created_at >= last_24h
+    if business_id is not None:
+        active_chats_filter = and_(active_chats_filter, Conversation.business_id == business_id)
+    active_chats = db.query(func.count(Conversation.id)).filter(active_chats_filter).scalar() or 0
 
     # Leads captured
-    total_leads = db.query(func.count(Lead.id)).filter(
-        Lead.created_at >= start_date
-    ).scalar() or 0
+    total_leads = db.query(func.count(Lead.id)).filter(lead_filter).scalar() or 0
 
     # Most common intents
     intent_counts = (
         db.query(Conversation.intent, func.count(Conversation.id).label("count"))
-        .filter(Conversation.created_at >= start_date)
+        .filter(conv_filter)
         .group_by(Conversation.intent)
         .order_by(func.count(Conversation.id).desc())
         .limit(5)
@@ -54,7 +63,7 @@ async def get_overview(
     # Channel distribution
     channel_counts = (
         db.query(Conversation.channel, func.count(Conversation.id).label("count"))
-        .filter(Conversation.created_at >= start_date)
+        .filter(conv_filter)
         .group_by(Conversation.channel)
         .all()
     )
@@ -64,30 +73,27 @@ async def get_overview(
     
     # System Health: AI engine status (always running for rule-based)
     # System Health: Fallback trigger rate (unknown intents)
-    unknown_intent_count = db.query(func.count(Conversation.id)).filter(
-        and_(Conversation.intent == "unknown", Conversation.created_at >= start_date)
-    ).scalar() or 0
+    unknown_filter = and_(Conversation.intent == "unknown", conv_filter)
+    unknown_intent_count = db.query(func.count(Conversation.id)).filter(unknown_filter).scalar() or 0
     fallback_rate = (unknown_intent_count / total_conversations * 100) if total_conversations > 0 else 0
 
     # System Health: Rule coverage (intents with responses vs missing)
-    all_intents = db.query(Conversation.intent).filter(
-        Conversation.created_at >= start_date
-    ).distinct().all()
+    all_intents = db.query(Conversation.intent).filter(conv_filter).distinct().all()
     covered_intents = [intent[0] for intent in all_intents if intent[0] and intent[0] != "unknown"]
     rule_coverage = len(covered_intents) / max(len(all_intents), 1) * 100 if all_intents else 100
 
-    # System Health: Channel connectivity (active channels)
-    active_channels = db.query(ChannelIntegration.channel).filter(
-        ChannelIntegration.is_active == True
-    ).distinct().all()
+    # System Health: Channel connectivity (active channels) - filter by business
+    channel_filter = ChannelIntegration.is_active == True
+    if business_id is not None:
+        channel_filter = and_(channel_filter, ChannelIntegration.business_id == business_id)
+    active_channels = db.query(ChannelIntegration.channel).filter(channel_filter).distinct().all()
     channel_connectivity = len(active_channels)
 
     # Channel Performance Intelligence
     channel_performance = []
     for channel, count in channel_counts:
-        channel_leads = db.query(func.count(Lead.id)).filter(
-            and_(Lead.channel == channel, Lead.created_at >= start_date)
-        ).scalar() or 0
+        channel_lead_filter = and_(Lead.channel == channel, lead_filter)
+        channel_leads = db.query(func.count(Lead.id)).filter(channel_lead_filter).scalar() or 0
         lead_rate = (channel_leads / count * 100) if count > 0 else 0
         
         # AI resolution rate (conversations that didn't escalate to human)
@@ -95,10 +101,11 @@ async def get_overview(
         ai_resolution_rate = 95.0  # Placeholder - can be enhanced later
         
         # Peak activity (hour with most messages)
+        channel_conv_filter = and_(Conversation.channel == channel, conv_filter)
         hour_counts = (
             db.query(func.extract('hour', Conversation.created_at).label("hour"), 
                     func.count(Conversation.id).label("count"))
-            .filter(and_(Conversation.channel == channel, Conversation.created_at >= start_date))
+            .filter(channel_conv_filter)
             .group_by(func.extract('hour', Conversation.created_at))
             .order_by(func.count(Conversation.id).desc())
             .first()
@@ -117,9 +124,8 @@ async def get_overview(
     intent_quality = []
     for intent, count in intent_counts:
         # Leads generated by this intent
-        intent_leads = db.query(func.count(Lead.id)).filter(
-            and_(Lead.source_intent == intent, Lead.created_at >= start_date)
-        ).scalar() or 0
+        intent_lead_filter = and_(Lead.source_intent == intent, lead_filter)
+        intent_leads = db.query(func.count(Lead.id)).filter(intent_lead_filter).scalar() or 0
         
         # Fallback rate for this intent (if unknown)
         is_fallback = (intent == "unknown")
@@ -142,7 +148,7 @@ async def get_overview(
     ai_responses = total_conversations  # All conversations have AI responses
     # User engagement (conversations with multiple messages - simplified)
     engaged_conversations = db.query(func.count(func.distinct(Conversation.user_id))).filter(
-        Conversation.created_at >= start_date
+        conv_filter
     ).scalar() or 0
     leads_captured = total_leads
     # Human handoff (placeholder - no tracking yet)
@@ -177,9 +183,7 @@ async def get_overview(
             })
 
     # Recent Activity Timeline
-    recent_leads = db.query(Lead).filter(
-        Lead.created_at >= start_date
-    ).order_by(Lead.created_at.desc()).limit(5).all()
+    recent_leads = db.query(Lead).filter(lead_filter).order_by(Lead.created_at.desc()).limit(5).all()
     
     recent_events = []
     for lead in recent_leads:
@@ -200,18 +204,20 @@ async def get_overview(
         })
 
     # Lead Snapshot Summary
-    leads_today = db.query(func.count(Lead.id)).filter(
-        func.date(Lead.created_at) == func.date(datetime.utcnow())
-    ).scalar() or 0
+    leads_today_filter = func.date(Lead.created_at) == func.date(datetime.utcnow())
+    if business_id is not None:
+        leads_today_filter = and_(leads_today_filter, Lead.business_id == business_id)
+    leads_today = db.query(func.count(Lead.id)).filter(leads_today_filter).scalar() or 0
     
-    leads_this_week = db.query(func.count(Lead.id)).filter(
-        Lead.created_at >= datetime.utcnow() - timedelta(days=7)
-    ).scalar() or 0
+    leads_week_filter = Lead.created_at >= datetime.utcnow() - timedelta(days=7)
+    if business_id is not None:
+        leads_week_filter = and_(leads_week_filter, Lead.business_id == business_id)
+    leads_this_week = db.query(func.count(Lead.id)).filter(leads_week_filter).scalar() or 0
     
     # Best performing channel for leads
     best_channel_leads = (
         db.query(Lead.channel, func.count(Lead.id).label("count"))
-        .filter(Lead.created_at >= start_date)
+        .filter(lead_filter)
         .group_by(Lead.channel)
         .order_by(func.count(Lead.id).desc())
         .first()
@@ -221,7 +227,7 @@ async def get_overview(
     # Top lead-generating intent
     top_lead_intent = (
         db.query(Lead.source_intent, func.count(Lead.id).label("count"))
-        .filter(and_(Lead.created_at >= start_date, Lead.source_intent.isnot(None)))
+        .filter(and_(lead_filter, Lead.source_intent.isnot(None)))
         .group_by(Lead.source_intent)
         .order_by(func.count(Lead.id).desc())
         .first()
@@ -233,7 +239,7 @@ async def get_overview(
     hour_performance = (
         db.query(func.extract('hour', Conversation.created_at).label("hour"),
                 func.count(Conversation.id).label("count"))
-        .filter(Conversation.created_at >= start_date)
+        .filter(conv_filter)
         .group_by(func.extract('hour', Conversation.created_at))
         .order_by(func.count(Conversation.id).desc())
         .first()
@@ -244,7 +250,7 @@ async def get_overview(
     day_performance = (
         db.query(func.extract('dow', Conversation.created_at).label("day"),
                 func.count(Conversation.id).label("count"))
-        .filter(Conversation.created_at >= start_date)
+        .filter(conv_filter)
         .group_by(func.extract('dow', Conversation.created_at))
         .order_by(func.count(Conversation.id).desc())
         .first()
@@ -309,7 +315,14 @@ async def get_conversations(
     db: Session = Depends(get_db),
 ):
     """Get paginated conversations list with intelligence data."""
+    # Get user's business_id (None for admin = can see all)
+    business_id = get_user_business_id(current_user, db)
+    
     query = db.query(Conversation)
+    
+    # Filter by business_id if user is not admin
+    if business_id is not None:
+        query = query.filter(Conversation.business_id == business_id)
 
     # Apply filters
     if channel:
@@ -324,7 +337,10 @@ async def get_conversations(
     if has_lead is not None:
         # Check if conversation has associated lead
         # Simplified approach: filter by user_ids that have leads
-        lead_user_ids = db.query(Lead.user_id).distinct().all()
+        lead_query = db.query(Lead.user_id).distinct()
+        if business_id is not None:
+            lead_query = lead_query.filter(Lead.business_id == business_id)
+        lead_user_ids = lead_query.all()
         lead_user_id_list = [uid[0] for uid in lead_user_ids] if lead_user_ids else []
         
         if has_lead:
@@ -348,22 +364,31 @@ async def get_conversations(
     result_conversations = []
     for conv in conversations:
         # Get conversation memory for context
-        memory = db.query(ConversationMemory).filter(
+        memory_filter = and_(
             ConversationMemory.user_id == conv.user_id,
             ConversationMemory.channel == conv.channel
-        ).first()
+        )
+        if business_id is not None:
+            memory_filter = and_(memory_filter, ConversationMemory.business_id == business_id)
+        memory = db.query(ConversationMemory).filter(memory_filter).first()
 
         # Count messages for this conversation
-        message_count = db.query(func.count(Message.id)).filter(
+        message_filter = and_(
             Message.user_id == conv.user_id,
             Message.channel == conv.channel
-        ).scalar() or 1
+        )
+        if business_id is not None:
+            message_filter = and_(message_filter, Message.business_id == business_id)
+        message_count = db.query(func.count(Message.id)).filter(message_filter).scalar() or 1
 
         # Check for associated lead
-        lead = db.query(Lead).filter(
+        lead_filter = and_(
             Lead.user_id == conv.user_id,
             Lead.channel == conv.channel
-        ).first()
+        )
+        if business_id is not None:
+            lead_filter = and_(lead_filter, Lead.business_id == business_id)
+        lead = db.query(Lead).filter(lead_filter).first()
 
         # Determine conversation status
         status_value = "ai-handled"  # Default - all are AI-handled in Phase 1
@@ -373,11 +398,14 @@ async def get_conversations(
             status_value = "lead-captured"
 
         # Calculate fallback count (unknown intents for this user)
-        fallback_count = db.query(func.count(Conversation.id)).filter(
+        fallback_filter = and_(
             Conversation.user_id == conv.user_id,
             Conversation.channel == conv.channel,
             Conversation.intent == "unknown"
-        ).scalar() or 0
+        )
+        if business_id is not None:
+            fallback_filter = and_(fallback_filter, Conversation.business_id == business_id)
+        fallback_count = db.query(func.count(Conversation.id)).filter(fallback_filter).scalar() or 0
 
         # Generate smart labels
         labels = []
@@ -1330,7 +1358,14 @@ async def get_leads(
     db: Session = Depends(get_db),
 ):
     """Get paginated leads list."""
+    # Get user's business_id (None for admin = can see all)
+    business_id = get_user_business_id(current_user, db)
+    
     query = db.query(Lead)
+    
+    # Filter by business_id if user is not admin
+    if business_id is not None:
+        query = query.filter(Lead.business_id == business_id)
 
     if status:
         query = query.filter(Lead.status == status)

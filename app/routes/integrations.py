@@ -9,7 +9,7 @@ from datetime import datetime
 
 from app.database import get_db
 from app.models import ChannelIntegration, Business, User as UserModel
-from app.routes.auth import get_current_user
+from app.routes.auth import get_current_user, get_user_business_id
 import httpx
 
 log = logging.getLogger(__name__)
@@ -60,14 +60,17 @@ async def list_integrations(
             detail="Only Admin and Business Owner roles can manage integrations"
         )
     
-    # Get or create user's business
-    business = db.query(Business).filter(Business.owner_id == current_user.id).first()
+    # Get user's business_id
+    business_id = get_user_business_id(current_user, db)
     
-    if not business:
-        return []
+    if business_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Integrations require a business account. Admin users cannot manage integrations."
+        )
     
     integrations = db.query(ChannelIntegration).filter(
-        ChannelIntegration.business_id == business.id
+        ChannelIntegration.business_id == business_id
     ).all()
     
     return [
@@ -111,17 +114,22 @@ async def connect_telegram(
             detail="Invalid bot token format. Please check your token and try again."
         )
     
-    # Get or create user's business
-    business = db.query(Business).filter(Business.owner_id == current_user.id).first()
-    if not business:
-        # Create business for user
-        business = Business(
-            name=f"{current_user.full_name or current_user.email}'s Business",
-            owner_id=current_user.id
+    # Get user's business_id
+    business_id = get_user_business_id(current_user, db)
+    
+    if business_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Integrations require a business account. Admin users cannot manage integrations."
         )
-        db.add(business)
-        db.commit()
-        db.refresh(business)
+    
+    # Verify business exists
+    business = db.query(Business).filter(Business.id == business_id).first()
+    if not business:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Business not found. Please contact support."
+        )
     
     # Validate bot token by calling Telegram API
     bot_username = None
@@ -305,15 +313,17 @@ async def get_telegram_status(
     """
     Get Telegram integration status including webhook info.
     """
-    business = db.query(Business).filter(Business.owner_id == current_user.id).first()
-    if not business:
+    # Get user's business_id
+    business_id = get_user_business_id(current_user, db)
+    
+    if business_id is None:
         return TelegramStatusResponse(
             connected=False,
-            message="No business found. Please connect a channel first."
+            message="No business found. Admin users cannot manage integrations."
         )
     
     integration = db.query(ChannelIntegration).filter(
-        ChannelIntegration.business_id == business.id,
+        ChannelIntegration.business_id == business_id,
         ChannelIntegration.channel == "telegram",
         ChannelIntegration.is_active == True
     ).first()
@@ -380,15 +390,17 @@ async def test_telegram_connection(
             detail="Only Admin and Business Owner roles can test integrations"
         )
     
-    business = db.query(Business).filter(Business.owner_id == current_user.id).first()
-    if not business:
+    # Get user's business_id
+    business_id = get_user_business_id(current_user, db)
+    
+    if business_id is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No business found"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Integrations require a business account. Admin users cannot manage integrations."
         )
     
     integration = db.query(ChannelIntegration).filter(
-        ChannelIntegration.business_id == business.id,
+        ChannelIntegration.business_id == business_id,
         ChannelIntegration.channel == "telegram",
         ChannelIntegration.is_active == True
     ).first()
@@ -468,15 +480,17 @@ async def disconnect_telegram(
             detail="Only Admin and Business Owner roles can disconnect integrations"
         )
     
-    business = db.query(Business).filter(Business.owner_id == current_user.id).first()
-    if not business:
+    # Get user's business_id
+    business_id = get_user_business_id(current_user, db)
+    
+    if business_id is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No business found"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Integrations require a business account. Admin users cannot manage integrations."
         )
     
     integration = db.query(ChannelIntegration).filter(
-        ChannelIntegration.business_id == business.id,
+        ChannelIntegration.business_id == business_id,
         ChannelIntegration.channel == "telegram"
     ).first()
     

@@ -24,6 +24,7 @@ class Conversation(Base):
     - Channel/platform information
     - Detected intent
     - Timestamp for each conversation
+    - Business/workspace association (multi-tenant)
 
     Table: conversations
     """
@@ -32,6 +33,9 @@ class Conversation(Base):
 
     # Primary key - auto-incrementing integer
     id = Column(Integer, primary_key=True, index=True)
+
+    # Business/Workspace - links conversation to a specific business (multi-tenant)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
 
     # User identifier - platform-specific user ID (e.g., Telegram user ID)
     # Stored as string to support different platform ID formats
@@ -63,6 +67,8 @@ class User(Base):
     User model for authentication and access control.
 
     Supports multiple roles: Admin, Business Owner, Agent
+    Admin users don't need a business_id (platform-level access)
+    Business owners and agents are linked to a business (multi-tenant)
     """
     __tablename__ = "users"
 
@@ -71,6 +77,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=True)
     role = Column(String, nullable=False, default="agent")  # admin, business_owner, agent
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)  # Nullable for admin users
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -114,6 +121,7 @@ class Message(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)  # Multi-tenant support
     conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=True, index=True)
     user_id = Column(String, nullable=False, index=True)
     channel = Column(String, nullable=False, index=True)
@@ -167,6 +175,7 @@ class ConversationMemory(Base):
     __tablename__ = "conversation_memory"
 
     id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)  # Multi-tenant support
     user_id = Column(String, nullable=False, index=True)
     channel = Column(String, nullable=False, index=True)
     last_intent = Column(String, nullable=True)

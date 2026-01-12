@@ -13,7 +13,7 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import User
+from app.models import User, Business
 
 # JWT settings
 SECRET_KEY = settings.secret_key  # Loaded from environment variable
@@ -76,17 +76,44 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
     return db.query(User).filter(User.email == email).first()
 
 
-def create_user(db: Session, email: str, password: str, full_name: str = None, role: str = "agent") -> User:
-    """Create a new user."""
+def create_user(db: Session, email: str, password: str, full_name: str = None, role: str = "agent", business_id: int = None) -> User:
+    """
+    Create a new user.
+    
+    For business_owner role, a Business will be auto-created if business_id is not provided.
+    Admin users don't need a business_id.
+    """
     hashed_password = get_password_hash(password)
+    
+    # If role is business_owner and no business_id provided, create a new Business
+    if role == "business_owner" and business_id is None:
+        business_name = full_name or email.split("@")[0]  # Use name or email prefix as business name
+        business = Business(
+            name=business_name,
+            owner_id=None,  # Will be set after user is created
+            settings=None,
+        )
+        db.add(business)
+        db.flush()  # Flush to get business.id without committing
+        business_id = business.id
+    
     user = User(
         email=email,
         hashed_password=hashed_password,
         full_name=full_name,
         role=role,
+        business_id=business_id if role != "admin" else None,  # Admin users don't have business_id
         is_active=True,
     )
     db.add(user)
+    db.flush()  # Flush to get user.id
+    
+    # If we created a Business, update its owner_id
+    if role == "business_owner" and business_id:
+        business = db.query(Business).filter(Business.id == business_id).first()
+        if business:
+            business.owner_id = user.id
+    
     db.commit()
     db.refresh(user)
     return user

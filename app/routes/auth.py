@@ -50,6 +50,21 @@ def get_current_user(
     return user
 
 
+def get_user_business_id(current_user: UserModel, db: Session) -> int | None:
+    """
+    Get the business_id for the current user.
+    
+    - Admin users: return None (can access all businesses)
+    - Business owners and agents: return their business_id
+    
+    Returns:
+        business_id if user is linked to a business, None for admin users
+    """
+    if current_user.role == "admin":
+        return None  # Admin can access all businesses
+    return current_user.business_id
+
+
 @router.post("/login", response_model=Token)
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -78,7 +93,18 @@ async def login(
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user."""
+    """
+    Register a new user.
+    
+    For regular sign-ups (role='agent' or not specified):
+    - Automatically creates a Business
+    - Assigns user as 'business_owner' role
+    - Links user to the created Business
+    
+    For admin sign-ups (role='admin'):
+    - No Business is created
+    - User is not linked to any Business
+    """
     # Check if user already exists
     existing_user = get_user_by_email(db, user_data.email)
     if existing_user:
@@ -86,13 +112,21 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
-    # Create user
+    
+    # Determine role: if not admin, make them business_owner
+    # Admin role should only be set via script or explicit admin sign-up code
+    final_role = user_data.role
+    if final_role == "agent" or (final_role not in ["admin", "business_owner", "agent"]):
+        # Regular sign-up: make them business_owner and auto-create Business
+        final_role = "business_owner"
+    
+    # Create user (will auto-create Business if role is business_owner)
     user = create_user(
         db,
         email=user_data.email,
         password=user_data.password,
         full_name=user_data.full_name,
-        role=user_data.role,
+        role=final_role,
     )
     return user
 

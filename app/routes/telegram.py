@@ -191,6 +191,7 @@ async def telegram_webhook(update: TelegramUpdate):
         # Step 5: Send reply using processor-generated text
         # This MUST happen before saving conversation to ensure user receives reply
         # Bot behavior is unchanged - reply is sent regardless of what happens next
+        used_business_id = None  # Track which business's bot was used
         if chat_id:
             try:
                 # Ensure chat_id is an int (Telegram API requires int)
@@ -220,7 +221,8 @@ async def telegram_webhook(update: TelegramUpdate):
                                         bot_service = TelegramService(bot_token)
                                         send_success = await bot_service.send_message(chat_id_int, reply_text)
                                         if send_success:
-                                            log.info(f"reply_sent chat_id={chat_id_int} user_id={normalized_message.user_id} bot={integration.channel_name}")
+                                            used_business_id = integration.business_id  # Track which business's bot was used
+                                            log.info(f"reply_sent chat_id={chat_id_int} user_id={normalized_message.user_id} bot={integration.channel_name} business_id={used_business_id}")
                                             break
                             except Exception as e:
                                 log.debug(f"tried_bot_token integration_id={integration.id} error={type(e).__name__}")
@@ -231,7 +233,7 @@ async def telegram_webhook(update: TelegramUpdate):
                         db.close()
                     
                     if send_success:
-                        log.info(f"reply_sent chat_id={chat_id_int} user_id={normalized_message.user_id}")
+                        log.info(f"reply_sent chat_id={chat_id_int} user_id={normalized_message.user_id} business_id={used_business_id}")
                     else:
                         log.error(f"reply_send_failed chat_id={chat_id_int} user_id={normalized_message.user_id} - No active Telegram integration found. Connect your bot via the dashboard.")
                 else:
@@ -287,19 +289,22 @@ async def telegram_webhook(update: TelegramUpdate):
     # Step 6: Save conversation to database (AFTER reply is sent/attempted)
     # This is non-blocking and error-safe - failures don't affect bot behavior
     # Conversation is saved even if reply send failed (for debugging/analytics)
-    if normalized_message:
+    if normalized_message and used_business_id:
         try:
             save_success = await save_conversation_from_normalized(
                 normalized_message=normalized_message,
                 bot_reply=reply_text,
+                business_id=used_business_id,
             )
             if save_success:
-                log.debug(f"conversation_saved user_id={normalized_message.user_id}")
+                log.debug(f"conversation_saved user_id={normalized_message.user_id} business_id={used_business_id}")
             else:
-                log.warning(f"conversation_save_failed user_id={normalized_message.user_id}")
+                log.warning(f"conversation_save_failed user_id={normalized_message.user_id} business_id={used_business_id}")
         except Exception as e:
             # save_conversation_from_normalized should never raise, but double-check
             log.error(f"conversation_save_error user_id={normalized_message.user_id} error={type(e).__name__}", exc_info=True)
+    elif normalized_message and not used_business_id:
+        log.warning(f"conversation_save_skipped user_id={normalized_message.user_id} reason=no_business_id_available")
 
     return {"ok": True}
 

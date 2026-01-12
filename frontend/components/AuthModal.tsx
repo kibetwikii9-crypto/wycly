@@ -205,12 +205,13 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }: Au
 
     try {
       // Call the register API endpoint
+      // Backend will auto-create Business and assign business_owner role
       const { api } = await import('@/lib/api');
       const response = await api.post('/api/auth/register', {
         email: signUpData.email,
         password: signUpData.password,
         full_name: signUpData.fullName,
-        role: 'agent', // Default role
+        // role is optional - backend will auto-assign business_owner and create Business
       });
 
       // Show success message and switch to sign in tab

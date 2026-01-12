@@ -65,3 +65,4 @@ After setting `PUBLIC_URL` correctly and redeploying:
 2. The webhook should be set successfully
 3. Check Render logs - you should see: `Webhook set successfully for bot @your_bot_username`
 
+

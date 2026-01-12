@@ -154,3 +154,4 @@ Write-Host "4. Send a test message to your bot and check logs" -ForegroundColor 
 Write-Host ""
 
 
+
