@@ -47,9 +47,6 @@ engine = create_engine(
     connect_args={
         "prepare_threshold": 0,  # Disable prepared statements to avoid psycopg3 DuplicatePreparedStatement errors
         "connect_timeout": 10,  # Connection timeout in seconds
-        "server_settings": {
-            "application_name": "automify_backend",
-        },
     },
     # Force IPv4 if DNS resolution fails (Windows sometimes has IPv6 issues)
     poolclass=None,  # Use default connection pool
