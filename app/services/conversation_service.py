@@ -78,7 +78,7 @@ async def save_conversation(
             db.add(conversation)
             # get_db_context() automatically commits on success
 
-        log.debug(f"conversation_saved user_id={user_id} business_id={business_id} channel={channel} intent={intent}")
+        log.info(f"✅ conversation_saved user_id={user_id} business_id={business_id} channel={channel} intent={intent} conversation_id={conversation.id}")
         return True
 
     except Exception as e:

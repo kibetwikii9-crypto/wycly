@@ -725,7 +725,16 @@ async def get_conversation_detail(
     db: Session = Depends(get_db),
 ):
     """Get detailed conversation with full context, AI reasoning, and timeline."""
-    conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    # Get user's business_id (None for admin = can see all)
+    business_id = get_user_business_id(current_user, db)
+    
+    query = db.query(Conversation).filter(Conversation.id == conversation_id)
+    
+    # Filter by business_id if user is not admin
+    if business_id is not None:
+        query = query.filter(Conversation.business_id == business_id)
+    
+    conversation = query.first()
     
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")

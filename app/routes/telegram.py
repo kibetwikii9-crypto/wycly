@@ -223,6 +223,8 @@ async def telegram_webhook(update: TelegramUpdate):
                                         if send_success:
                                             used_business_id = integration.business_id  # Track which business's bot was used
                                             log.info(f"reply_sent chat_id={chat_id_int} user_id={normalized_message.user_id} bot={integration.channel_name} business_id={used_business_id}")
+                                            # Log for debugging
+                                            log.info(f"CONVERSATION_SAVE_INFO: business_id={used_business_id} integration_id={integration.id} bot_username={integration.channel_name}")
                                             break
                             except Exception as e:
                                 log.debug(f"tried_bot_token integration_id={integration.id} error={type(e).__name__}")
@@ -291,20 +293,21 @@ async def telegram_webhook(update: TelegramUpdate):
     # Conversation is saved even if reply send failed (for debugging/analytics)
     if normalized_message and used_business_id:
         try:
+            log.info(f"SAVING_CONVERSATION: user_id={normalized_message.user_id} business_id={used_business_id} channel={normalized_message.channel}")
             save_success = await save_conversation_from_normalized(
                 normalized_message=normalized_message,
                 bot_reply=reply_text,
                 business_id=used_business_id,
             )
             if save_success:
-                log.debug(f"conversation_saved user_id={normalized_message.user_id} business_id={used_business_id}")
+                log.info(f"✅ CONVERSATION_SAVED: user_id={normalized_message.user_id} business_id={used_business_id} channel={normalized_message.channel}")
             else:
-                log.warning(f"conversation_save_failed user_id={normalized_message.user_id} business_id={used_business_id}")
+                log.warning(f"❌ CONVERSATION_SAVE_FAILED: user_id={normalized_message.user_id} business_id={used_business_id} channel={normalized_message.channel}")
         except Exception as e:
             # save_conversation_from_normalized should never raise, but double-check
-            log.error(f"conversation_save_error user_id={normalized_message.user_id} error={type(e).__name__}", exc_info=True)
+            log.error(f"❌ CONVERSATION_SAVE_ERROR: user_id={normalized_message.user_id} business_id={used_business_id} error={type(e).__name__} message={str(e)}", exc_info=True)
     elif normalized_message and not used_business_id:
-        log.warning(f"conversation_save_skipped user_id={normalized_message.user_id} reason=no_business_id_available")
+        log.warning(f"⚠️ CONVERSATION_SAVE_SKIPPED: user_id={normalized_message.user_id} reason=no_business_id_available (used_business_id is None)")
 
     return {"ok": True}
 
