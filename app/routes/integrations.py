@@ -275,11 +275,25 @@ async def connect_telegram(
             detail=f"Unexpected error setting webhook: {str(e)}. Please check Render logs for details."
         )
     
-    # Check if integration already exists
-    existing = db.query(ChannelIntegration).filter(
-        ChannelIntegration.business_id == business.id,
-        ChannelIntegration.channel == "telegram"
-    ).first()
+    # Check if integration already exists (with retry)
+    existing = None
+    for attempt in range(max_retries):
+        try:
+            existing = db.query(ChannelIntegration).filter(
+                ChannelIntegration.business_id == business.id,
+                ChannelIntegration.channel == "telegram"
+            ).first()
+            break
+        except Exception as e:
+            if "DuplicatePreparedStatement" in str(e) and attempt < max_retries - 1:
+                log.warning(f"DuplicatePreparedStatement error checking existing integration on attempt {attempt + 1}, retrying...")
+                db.rollback()
+                try:
+                    db.connection().invalidate()
+                except Exception:
+                    pass
+                continue
+            raise
     
     # Store credentials (in production, use proper encryption)
     # For now, store as JSON string - in production, encrypt this
@@ -289,14 +303,27 @@ async def connect_telegram(
     })
     
     if existing:
-        # Update existing integration
-        existing.credentials = credentials
-        existing.is_active = True
-        existing.webhook_url = webhook_url
-        existing.channel_name = request.channel_name or f"Telegram (@{bot_username})"
-        existing.updated_at = datetime.utcnow()
-        db.commit()
-        db.refresh(existing)
+        # Update existing integration (with retry)
+        for attempt in range(max_retries):
+            try:
+                existing.credentials = credentials
+                existing.is_active = True
+                existing.webhook_url = webhook_url
+                existing.channel_name = request.channel_name or f"Telegram (@{bot_username})"
+                existing.updated_at = datetime.utcnow()
+                db.commit()
+                db.refresh(existing)
+                break
+            except Exception as e:
+                if "DuplicatePreparedStatement" in str(e) and attempt < max_retries - 1:
+                    log.warning(f"DuplicatePreparedStatement error updating integration on attempt {attempt + 1}, retrying...")
+                    db.rollback()
+                    try:
+                        db.connection().invalidate()
+                    except Exception:
+                        pass
+                    continue
+                raise
         
         log.info(f"Telegram integration updated: {existing.id} by user {current_user.id}")
         
