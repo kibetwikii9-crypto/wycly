@@ -1399,7 +1399,7 @@ export default function SalesProductsPage() {
                             </tr>
                           );
                         })
-                      )}}
+                      )}
                     </tbody>
                   </table>
                 </div>
