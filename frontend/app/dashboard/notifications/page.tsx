@@ -1,207 +1,170 @@
 'use client';
 
-import { Bell, Mail, Smartphone, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { Bell, Mail, Smartphone, CheckCircle2, Clock } from 'lucide-react';
+import TimeAgo from '@/components/TimeAgo';
 
-const alertCategories = [
-  {
-    name: 'New Conversations',
-    description: 'Get notified when new conversations start',
-    channels: ['email', 'in-app'],
-  },
-  {
-    name: 'High Priority Messages',
-    description: 'Alerts for urgent customer inquiries',
-    channels: ['email', 'in-app', 'sms'],
-  },
-  {
-    name: 'Lead Captured',
-    description: 'Notifications when new leads are generated',
-    channels: ['email', 'in-app'],
-  },
-  {
-    name: 'System Alerts',
-    description: 'Important system updates and maintenance',
-    channels: ['email'],
-  },
-];
+interface Notification {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  category: string | null;
+  is_read: boolean;
+  action_url: string | null;
+  created_at: string;
+}
 
 export default function NotificationsPage() {
+  const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<'all' | 'unread'>('unread');
+
+  const { data: notifications = [], isLoading } = useQuery<Notification[]>({
+    queryKey: ['notifications', filter],
+    queryFn: async () => {
+      const response = await api.get('/api/notifications/', {
+        params: { is_read: filter === 'unread' ? false : undefined },
+      });
+      return response.data;
+    },
+    refetchInterval: 30000,
+  });
+
+  const { data: unreadCount = { count: 0 } } = useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: async () => {
+      const response = await api.get('/api/notifications/unread-count');
+      return response.data;
+    },
+    refetchInterval: 30000,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.post(`/api/notifications/${id}/read`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      await api.post('/api/notifications/mark-all-read');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Notifications & Alerts
-        </h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Configure how and when you receive notifications
-        </p>
-      </div>
-
-      {/* Coming Soon Banner */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-          <div>
-            <h3 className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-1">
-              Notification System Coming Soon
-            </h3>
-            <p className="text-sm text-blue-700 dark:text-blue-400">
-              Advanced notification preferences, alert management, and multi-channel delivery are in development.
-            </p>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Notifications & Alerts
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Manage your notifications and preferences
+          </p>
         </div>
+        {unreadCount.count > 0 && (
+          <button
+            onClick={() => markAllReadMutation.mutate()}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            Mark All Read
+          </button>
+        )}
       </div>
 
-      {/* Alert Categories */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-          Alert Categories
-        </h3>
-        <div className="space-y-4">
-          {alertCategories.map((category, idx) => (
+      {/* Filter Tabs */}
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setFilter('unread')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 ${
+            filter === 'unread'
+              ? 'border-primary-600 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          Unread ({unreadCount.count})
+        </button>
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 ${
+            filter === 'all'
+              ? 'border-primary-600 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          All
+        </button>
+      </div>
+
+      {/* Notifications List */}
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          {notifications.map((notification) => (
             <div
-              key={idx}
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-                    {category.name}
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {category.description}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Channels:</span>
-                <div className="flex gap-2">
-                  {category.channels.map((channel) => (
-                    <span
-                      key={channel}
-                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 capitalize"
-                    >
-                      {channel === 'in-app' ? 'In-App' : channel}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="mt-3 flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <input
-                    type="checkbox"
-                    disabled
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-not-allowed opacity-50"
-                  />
-                  Enable notifications
-                </label>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Notification Channels */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-          Notification Channels
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <div className="flex items-center gap-3 mb-3">
-              <Mail className="h-5 w-5 text-primary-500" />
-              <h4 className="text-sm font-medium text-gray-900 dark:text-white">Email</h4>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Receive notifications via email
-            </p>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                disabled
-                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-not-allowed opacity-50"
-              />
-              <span className="text-xs text-gray-500 dark:text-gray-400">Available Soon</span>
-            </div>
-          </div>
-          <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <div className="flex items-center gap-3 mb-3">
-              <Bell className="h-5 w-5 text-primary-500" />
-              <h4 className="text-sm font-medium text-gray-900 dark:text-white">In-App</h4>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Notifications within the platform
-            </p>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                disabled
-                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-not-allowed opacity-50"
-              />
-              <span className="text-xs text-gray-500 dark:text-gray-400">Available Soon</span>
-            </div>
-          </div>
-          <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <div className="flex items-center gap-3 mb-3">
-              <Smartphone className="h-5 w-5 text-primary-500" />
-              <h4 className="text-sm font-medium text-gray-900 dark:text-white">SMS</h4>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Text message notifications
-            </p>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                disabled
-                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-not-allowed opacity-50"
-              />
-              <span className="text-xs text-gray-500 dark:text-gray-400">Planned</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Sample Alert Cards */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-          Sample Alert Cards (Preview)
-        </h3>
-        <div className="space-y-3">
-          {[
-            { type: 'new_conversation', message: 'New conversation started on Instagram', time: '2 minutes ago', unread: true },
-            { type: 'lead_captured', message: 'New lead captured: john@example.com', time: '15 minutes ago', unread: true },
-            { type: 'system', message: 'System maintenance scheduled for tonight', time: '1 hour ago', unread: false },
-          ].map((alert, idx) => (
-            <div
-              key={idx}
-              className={`p-4 border rounded-lg ${
-                alert.unread
-                  ? 'border-primary-200 dark:border-primary-800 bg-primary-50 dark:bg-primary-900/10'
-                  : 'border-gray-200 dark:border-gray-700'
+              key={notification.id}
+              className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                !notification.is_read ? 'bg-primary-50 dark:bg-primary-900/10' : ''
               }`}
             >
               <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Bell className={`h-4 w-4 ${alert.unread ? 'text-primary-500' : 'text-gray-400'}`} />
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {alert.message}
+                <div className="flex items-start gap-3 flex-1">
+                  <Bell
+                    className={`h-5 w-5 mt-0.5 ${
+                      notification.is_read ? 'text-gray-400' : 'text-primary-500'
+                    }`}
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                        {notification.title}
+                      </h4>
+                      {!notification.is_read && (
+                        <span className="h-2 w-2 rounded-full bg-primary-500" />
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {notification.message}
                     </p>
-                    {alert.unread && (
-                      <span className="h-2 w-2 rounded-full bg-primary-500" />
-                    )}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <TimeAgo timestamp={notification.created_at} />
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{alert.time}</p>
                 </div>
+                {!notification.is_read && (
+                  <button
+                    onClick={() => markReadMutation.mutate(notification.id)}
+                    className="ml-4 text-xs text-primary-600 hover:text-primary-700"
+                  >
+                    Mark read
+                  </button>
+                )}
               </div>
             </div>
           ))}
+          {notifications.length === 0 && (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <Bell className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No notifications</p>
+            </div>
+          )}
         </div>
-        <p className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
-          Full notification management and preferences will be available in a future update.
-        </p>
       </div>
     </div>
   );
 }
-

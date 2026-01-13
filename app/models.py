@@ -216,3 +216,395 @@ class AdAsset(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+
+# ========== USERS & ROLES MODELS ==========
+
+class Role(Base):
+    """
+    Role model for RBAC (Role-Based Access Control).
+    """
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)  # Nullable for system roles
+    name = Column(String, nullable=False, index=True)  # owner, admin, agent, viewer, custom
+    description = Column(Text, nullable=True)
+    is_system = Column(Boolean, default=False, nullable=False)  # System roles cannot be deleted
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Permission(Base):
+    """
+    Permission model for granular access control.
+    """
+    __tablename__ = "permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False, index=True)  # e.g., "conversations.view", "users.manage"
+    description = Column(Text, nullable=True)
+    category = Column(String, nullable=True, index=True)  # conversations, users, settings, etc.
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class RolePermission(Base):
+    """
+    Many-to-many relationship between roles and permissions.
+    """
+    __tablename__ = "role_permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False, index=True)
+    permission_id = Column(Integer, ForeignKey("permissions.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class UserRole(Base):
+    """
+    Many-to-many relationship between users and roles.
+    """
+    __tablename__ = "user_roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ========== HANDOFF MODELS ==========
+
+class Handoff(Base):
+    """
+    Handoff model for AI-to-human conversation transitions.
+    """
+    __tablename__ = "handoffs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False, index=True)
+    assigned_to_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    status = Column(String, default="pending", nullable=False, index=True)  # pending, assigned, in_progress, resolved
+    priority = Column(String, default="medium", nullable=False, index=True)  # low, medium, high, urgent
+    reason = Column(Text, nullable=True)  # Why handoff was triggered
+    assigned_at = Column(DateTime, nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class SLA(Base):
+    """
+    SLA (Service Level Agreement) model for tracking response and resolution times.
+    """
+    __tablename__ = "slas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    handoff_id = Column(Integer, ForeignKey("handoffs.id"), nullable=False, index=True)
+    target_response_time = Column(Integer, nullable=True)  # Minutes
+    target_resolution_time = Column(Integer, nullable=True)  # Minutes
+    actual_response_time = Column(Integer, nullable=True)  # Minutes
+    actual_resolution_time = Column(Integer, nullable=True)  # Minutes
+    response_time_breached = Column(Boolean, default=False, nullable=False)
+    resolution_time_breached = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Escalation(Base):
+    """
+    Escalation model for tracking conversation escalations.
+    """
+    __tablename__ = "escalations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    handoff_id = Column(Integer, ForeignKey("handoffs.id"), nullable=False, index=True)
+    from_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    to_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reason = Column(Text, nullable=True)
+    escalated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    resolved_at = Column(DateTime, nullable=True)
+
+
+# ========== NOTIFICATIONS MODELS ==========
+
+class Notification(Base):
+    """
+    Notification model for in-app notifications.
+    """
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    type = Column(String, nullable=False, index=True)  # new_conversation, lead_captured, system_alert, etc.
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    category = Column(String, nullable=True, index=True)
+    is_read = Column(Boolean, default=False, nullable=False, index=True)
+    read_at = Column(DateTime, nullable=True)
+    action_url = Column(String, nullable=True)  # URL to navigate when clicked
+    extra_data = Column(Text, nullable=True)  # JSON string for additional data
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class NotificationPreference(Base):
+    """
+    Notification preference model for user notification settings.
+    """
+    __tablename__ = "notification_preferences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    category = Column(String, nullable=False, index=True)  # new_conversation, lead_captured, etc.
+    email_enabled = Column(Boolean, default=True, nullable=False)
+    in_app_enabled = Column(Boolean, default=True, nullable=False)
+    sms_enabled = Column(Boolean, default=False, nullable=False)
+    quiet_hours_start = Column(String, nullable=True)  # HH:MM format
+    quiet_hours_end = Column(String, nullable=True)  # HH:MM format
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# ========== SECURITY MODELS ==========
+
+class TwoFactorAuth(Base):
+    """
+    Two-Factor Authentication model.
+    """
+    __tablename__ = "two_factor_auth"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False, index=True)
+    secret = Column(String, nullable=False)  # TOTP secret
+    is_enabled = Column(Boolean, default=False, nullable=False)
+    backup_codes = Column(Text, nullable=True)  # JSON array of backup codes
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class IPAllowlist(Base):
+    """
+    IP Allowlist model for restricting access by IP address.
+    """
+    __tablename__ = "ip_allowlists"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    ip_address = Column(String, nullable=False, index=True)
+    description = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+
+class Session(Base):
+    """
+    User session model for tracking active sessions.
+    """
+    __tablename__ = "sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    session_token = Column(String, unique=True, nullable=False, index=True)
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_activity = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class APIKey(Base):
+    """
+    API Key model for programmatic access.
+    """
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    key_hash = Column(String, nullable=False, unique=True, index=True)  # Hashed API key
+    permissions = Column(Text, nullable=True)  # JSON array of permissions
+    last_used_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True, index=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class AuditLog(Base):
+    """
+    Audit log model for tracking system events.
+    """
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    action = Column(String, nullable=False, index=True)  # login, settings_updated, user_created, etc.
+    resource_type = Column(String, nullable=True, index=True)  # user, conversation, settings, etc.
+    resource_id = Column(Integer, nullable=True)
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    details = Column(Text, nullable=True)  # JSON string for additional details
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+# ========== SALES & PRODUCTS MODELS ==========
+
+class Product(Base):
+    """
+    Product model for e-commerce.
+    """
+    __tablename__ = "products"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    price = Column(Float, nullable=False)
+    currency = Column(String, default="USD", nullable=False)
+    category = Column(String, nullable=True, index=True)
+    tags = Column(Text, nullable=True)  # JSON array of tags
+    image_url = Column(String, nullable=True)
+    inventory_count = Column(Integer, nullable=True)  # Nullable for unlimited
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class DigitalAsset(Base):
+    """
+    Digital asset model for downloadable content.
+    """
+    __tablename__ = "digital_assets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    file_url = Column(String, nullable=False)
+    file_size = Column(Integer, nullable=True)  # Bytes
+    file_type = Column(String, nullable=True)  # pdf, zip, etc.
+    download_count = Column(Integer, default=0, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Service(Base):
+    """
+    Service model for service catalog.
+    """
+    __tablename__ = "services"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    price = Column(Float, nullable=False)
+    currency = Column(String, default="USD", nullable=False)
+    duration = Column(Integer, nullable=True)  # Minutes
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Bundle(Base):
+    """
+    Bundle model for product/service bundles.
+    """
+    __tablename__ = "bundles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    price = Column(Float, nullable=False)
+    currency = Column(String, default="USD", nullable=False)
+    discount_percentage = Column(Float, nullable=True)
+    product_ids = Column(Text, nullable=True)  # JSON array of product IDs
+    service_ids = Column(Text, nullable=True)  # JSON array of service IDs
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Order(Base):
+    """
+    Order model for sales transactions.
+    """
+    __tablename__ = "orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True, index=True)
+    customer_name = Column(String, nullable=True)
+    customer_email = Column(String, nullable=True, index=True)
+    customer_phone = Column(String, nullable=True)
+    status = Column(String, default="pending", nullable=False, index=True)  # pending, confirmed, shipped, delivered, cancelled
+    total_amount = Column(Float, nullable=False)
+    currency = Column(String, default="USD", nullable=False)
+    payment_status = Column(String, default="pending", nullable=False, index=True)  # pending, paid, refunded
+    payment_method = Column(String, nullable=True)
+    shipping_address = Column(Text, nullable=True)  # JSON string
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class OrderItem(Base):
+    """
+    Order item model for order line items.
+    """
+    __tablename__ = "order_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
+    service_id = Column(Integer, ForeignKey("services.id"), nullable=True)
+    bundle_id = Column(Integer, ForeignKey("bundles.id"), nullable=True)
+    item_type = Column(String, nullable=False)  # product, service, bundle
+    name = Column(String, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    unit_price = Column(Float, nullable=False)
+    total_price = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ========== ONBOARDING MODELS ==========
+
+class OnboardingStep(Base):
+    """
+    Onboarding step model for defining onboarding flow.
+    """
+    __tablename__ = "onboarding_steps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    step_key = Column(String, unique=True, nullable=False, index=True)  # welcome, connect_channel, etc.
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    order = Column(Integer, nullable=False)
+    is_required = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class OnboardingProgress(Base):
+    """
+    Onboarding progress model for tracking user onboarding.
+    """
+    __tablename__ = "onboarding_progress"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    step_key = Column(String, nullable=False, index=True)
+    is_completed = Column(Boolean, default=False, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+

@@ -686,37 +686,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Future-Ready Indicators */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 opacity-60">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
-            Coming Soon
-          </h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-              <CreditCard className="h-5 w-5 text-gray-400" />
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Payments</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Coming soon</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-              <Brain className="h-5 w-5 text-gray-400" />
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">LLM Upgrade</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Coming soon</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-              <Mic className="h-5 w-5 text-gray-400" />
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Voice AI</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Coming soon</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Most Common Intents */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700">
