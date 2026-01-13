@@ -23,6 +23,8 @@ export default function OnboardingPage() {
       const response = await api.get('/api/onboarding/progress/');
       return response.data;
     },
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000, // Refetch every 30 seconds to catch connection changes
   });
 
   const completeStepMutation = useMutation({

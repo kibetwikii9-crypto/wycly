@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Plug, CheckCircle2, Clock, AlertCircle, ExternalLink, Settings, MessageSquare, XCircle } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
@@ -62,6 +63,7 @@ const channels = [
 
 export default function IntegrationsPage() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,6 +109,8 @@ export default function IntegrationsPage() {
     fetchIntegrations();
     setTestError(null);
     setTestSuccess(false);
+    // Invalidate onboarding progress to reflect Telegram connection
+    queryClient.invalidateQueries({ queryKey: ['onboarding'] });
   };
 
   const handleTestMessage = async () => {

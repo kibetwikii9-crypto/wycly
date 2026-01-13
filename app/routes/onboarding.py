@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from app.database import get_db
-from app.models import OnboardingStep, OnboardingProgress, User as UserModel
+from app.models import OnboardingStep, OnboardingProgress, User as UserModel, ChannelIntegration
 from app.routes.auth import get_current_user, get_user_business_id
 
 log = logging.getLogger(__name__)
@@ -53,17 +53,47 @@ async def get_progress(
         ).all()
     }
     
+    # Check if Telegram is connected (for connect_channel step)
+    telegram_connected = db.query(ChannelIntegration).filter(
+        ChannelIntegration.business_id == business_id,
+        ChannelIntegration.channel == "telegram",
+        ChannelIntegration.is_active == True
+    ).first() is not None
+    
     result = []
     for step in steps:
         progress = progress_dict.get(step.step_key)
+        
+        # Auto-complete connect_channel step if Telegram is connected
+        is_completed = False
+        completed_at = None
+        
+        if step.step_key == "connect_channel":
+            # Auto-complete if Telegram is connected
+            if telegram_connected:
+                is_completed = True
+                # Use existing progress completed_at if available, otherwise use current time
+                if progress and progress.completed_at:
+                    completed_at = progress.completed_at.isoformat()
+                else:
+                    completed_at = datetime.utcnow().isoformat()
+            else:
+                # Use manual completion status
+                is_completed = progress.is_completed if progress else False
+                completed_at = progress.completed_at.isoformat() if progress and progress.completed_at else None
+        else:
+            # For other steps, use manual completion status
+            is_completed = progress.is_completed if progress else False
+            completed_at = progress.completed_at.isoformat() if progress and progress.completed_at else None
+        
         result.append({
             "step_key": step.step_key,
             "title": step.title,
             "description": step.description,
             "order": step.order,
             "is_required": step.is_required,
-            "is_completed": progress.is_completed if progress else False,
-            "completed_at": progress.completed_at.isoformat() if progress and progress.completed_at else None,
+            "is_completed": is_completed,
+            "completed_at": completed_at,
         })
     
     return result
