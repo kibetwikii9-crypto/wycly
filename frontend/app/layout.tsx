@@ -9,15 +9,9 @@ export const metadata: Metadata = {
   title: 'Automify - AI Chatbot Dashboard',
   description: 'Multi-channel AI chatbot, support, and marketing automation platform',
   icons: {
-    icon: [
-      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon.png', sizes: '192x192', type: 'image/png' },
-      { url: '/favicon.png', sizes: '512x512', type: 'image/png' },
-    ],
+    icon: '/favicon.png',
     shortcut: '/favicon.png',
-    apple: [
-      { url: '/favicon.png', sizes: '180x180', type: 'image/png' },
-    ],
+    apple: '/favicon.png',
   },
 };
 
