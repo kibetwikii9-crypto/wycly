@@ -42,8 +42,24 @@ async def get_progress(
             detail="Onboarding access requires a business account"
         )
     
-    # Get all steps
+    # Get all steps, or create default steps if none exist
     steps = db.query(OnboardingStep).order_by(OnboardingStep.order).all()
+    
+    # If no steps exist, create default steps
+    if not steps:
+        default_steps = [
+            OnboardingStep(step_key='welcome', title='Welcome & Setup', description='Get started with your account', order=1, is_required=True),
+            OnboardingStep(step_key='connect_channel', title='Connect Channels', description='Integrate your communication channels (Telegram, WhatsApp, etc.)', order=2, is_required=True),
+            OnboardingStep(step_key='configure_ai_rules', title='Configure AI Rules', description='Set up your automation rules and responses', order=3, is_required=True),
+            OnboardingStep(step_key='add_knowledge', title='Add Knowledge Base', description='Upload FAQs and responses to help your AI', order=4, is_required=True),
+            OnboardingStep(step_key='review_analytics', title='Review Analytics', description='Explore your dashboard and insights', order=5, is_required=False),
+            OnboardingStep(step_key='invite_team', title='Invite Team Members', description='Add team members to your workspace', order=6, is_required=False),
+        ]
+        for step in default_steps:
+            db.add(step)
+        db.commit()
+        # Re-query to get the newly created steps
+        steps = db.query(OnboardingStep).order_by(OnboardingStep.order).all()
     
     # Get progress
     progress_dict = {
