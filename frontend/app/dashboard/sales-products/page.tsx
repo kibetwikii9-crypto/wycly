@@ -527,8 +527,6 @@ export default function SalesProductsPage() {
                         );
                       })
                     )}
-                      );
-                    })}
                   </tbody>
                 </table>
               </div>
