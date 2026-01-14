@@ -23,13 +23,18 @@ function normalizeApiUrl(raw: string): string {
     return `https://${raw.replace(/^\/+/, '')}`;
   }
 
-  // Bare hostname (e.g. wycly-backend.onrender.com or just wycly-backend)
+  // Bare hostname (e.g. wycly-backend.onrender.com or just wycly-backend-li88)
   // Render's fromService with property:host returns hostname without protocol
   if (/^[\w.-]+(\.[\w.-]+)*$/.test(raw)) {
     // If it contains a dot, it's likely a full hostname (e.g., wycly-backend.onrender.com)
-    // If no dot, it might be just the service name (e.g., wycly-backend)
-    // For Render, we assume https://
-    return `https://${raw.replace(/\/+$/u, '')}`;
+    if (raw.includes('.')) {
+      // Full hostname - just add protocol
+      return `https://${raw.replace(/\/+$/u, '')}`;
+    } else {
+      // No dot - likely a Render service identifier (e.g., wycly-backend-li88)
+      // Render service names need .onrender.com appended
+      return `https://${raw.replace(/\/+$/u, '')}.onrender.com`;
+    }
   }
 
   // Fallback: return without trailing slashes
