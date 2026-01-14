@@ -69,7 +69,7 @@ const navigation: (NavItem | NavSection)[] = [
   {
     name: 'Customers & CRM',
     icon: Users2,
-    defaultOpen: true,
+    defaultOpen: false,
     items: [
       { name: 'Contacts', href: '/dashboard/crm/contacts', icon: Users2 },
       { name: 'Leads', href: '/dashboard/leads', icon: TrendingUp },
@@ -81,7 +81,7 @@ const navigation: (NavItem | NavSection)[] = [
   {
     name: 'Communication',
     icon: MessageSquare,
-    defaultOpen: true,
+    defaultOpen: false,
     items: [
       { name: 'Conversations', href: '/dashboard/conversations', icon: MessageSquare },
       { name: 'Internal Messages', href: '/dashboard/messages', icon: Mail },
@@ -93,7 +93,7 @@ const navigation: (NavItem | NavSection)[] = [
   {
     name: 'Sales & Inventory',
     icon: ShoppingBag,
-    defaultOpen: true,
+    defaultOpen: false,
     items: [
       { name: 'Products', href: '/dashboard/sales-products', icon: Package },
       { name: 'Inventory', href: '/dashboard/inventory', icon: ShoppingBag },
@@ -184,23 +184,14 @@ const navigation: (NavItem | NavSection)[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [openSections, setOpenSections] = useState<Set<string>>(
-    new Set(navigation.filter((item): item is NavSection => 'items' in item && (item.defaultOpen === true)).map(item => item.name))
-  );
+  // Start with all sections closed
+  const [openSection, setOpenSection] = useState<string | null>(null);
 
   const toggleSection = (sectionName: string) => {
-    setOpenSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(sectionName)) {
-        next.delete(sectionName);
-      } else {
-        next.add(sectionName);
-      }
-      return next;
-    });
+    // If clicking the same section, close it. Otherwise, open the new one (closes previous)
+    setOpenSection((prev) => prev === sectionName ? null : sectionName);
   };
 
-  const isSectionOpen = (sectionName: string) => openSections.has(sectionName);
   const isPathActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
   return (
@@ -246,7 +237,7 @@ export default function Sidebar() {
 
                 // Section with sub-items
                 const section = item as NavSection;
-                const isOpen = isSectionOpen(section.name);
+                const isOpen = openSection === section.name;
                 const hasActiveChild = section.items.some((subItem) => isPathActive(subItem.href));
 
                 return (
