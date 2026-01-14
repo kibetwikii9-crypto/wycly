@@ -119,11 +119,11 @@ https://your-backend-service.onrender.com/telegram/webhook
 
 ## 🔧 **CONFIGURATION DETAILS**
 
-### **Database Migration**
+### **Database Configuration**
 
-- **Local**: SQLite (`sqlite:///./curie.db`)
-- **Render**: PostgreSQL (managed by Render)
-- **Migration**: Automatic via `init_db()` on startup
+- **Database**: Supabase PostgreSQL
+- **Connection**: Configured via `DATABASE_URL` environment variable
+- **Initialization**: Automatic via `init_db()` on startup
 
 ### **CORS Settings**
 
@@ -150,8 +150,8 @@ All sensitive data will be stored in Render's environment variables (secure).
    - No manual database setup needed
 
 3. **File Storage:**
-   - SQLite files won't persist (ephemeral filesystem)
-   - Use PostgreSQL (which we'll configure)
+   - All data stored in Supabase PostgreSQL
+   - Persistent and reliable
    - Static files should be in Git or external storage
 
 4. **Knowledge Base:**

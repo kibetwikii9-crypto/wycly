@@ -395,10 +395,9 @@ This document tracks ALL changes made starting from when logos, fonts, and brand
 
 ### 8.1 **Removed Files**
 
-- `curie.db`
-  - **Reason:** Old SQLite database file (as requested)
-  - **Status:** Deleted
-  - **Note:** Application now uses Supabase PostgreSQL exclusively
+- Old database files have been removed
+  - **Status:** Cleaned up
+  - **Note:** Application uses Supabase PostgreSQL exclusively
 
 ---
 
@@ -462,7 +461,7 @@ This document tracks ALL changes made starting from when logos, fonts, and brand
 ## ⚠️ Important Notes
 
 1. **Service Names**: Kept as `automify-ai-*` on Render to match existing services
-2. **Database**: Uses Supabase PostgreSQL (SQLite removed)
+2. **Database**: Uses Supabase PostgreSQL
 3. **Admin User**: Auto-creation only works if `ADMIN_PASSWORD` is set
 4. **CORS**: Production fallback ensures frontend always works even if env vars are incomplete
 5. **Logos**: Files exist but not yet integrated into components (ready for future use)
@@ -481,7 +480,7 @@ This document tracks ALL changes made starting from when logos, fonts, and brand
 5. **Phase 5**: Security Configuration (Settings and warnings)
 6. **Phase 6**: Render Configuration (Environment variables)
 7. **Phase 7**: Documentation (Guides and references)
-8. **Phase 8**: Cleanup (Removed old SQLite database)
+8. **Phase 8**: Cleanup (Removed old database files)
 
 ---
 

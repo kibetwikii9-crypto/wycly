@@ -49,7 +49,7 @@ This is a comprehensive list of all cleanup tasks. Review and approve before exe
 37. **`TELEGRAM_DATA_FLOW_VERIFICATION.md`** - Old verification doc
 38. **`TELEGRAM_FLOW_EXECUTION_ORDER.md`** - Redundant execution order doc
 39. **`TROUBLESHOOTING_OLD_RESPONSE.md`** - Old troubleshooting doc
-40. **`VIEW_DATABASE_GUIDE.md`** - Outdated (we use Supabase, not SQLite)
+40. **`VIEW_DATABASE_GUIDE.md`** - Outdated database guide
 41. **`WEBHOOK_SETUP.md`** - Can consolidate with BOT_TROUBLESHOOTING.md
 
 ### **Files to KEEP (Still Useful):**
@@ -64,7 +64,6 @@ This is a comprehensive list of all cleanup tasks. Review and approve before exe
 - ✅ `RENDER_DEPLOYMENT_STEPS.md` - Step-by-step deployment
 - ✅ `RENDER_DEPLOYMENT_STEPS_SUPABASE.md` - Supabase-specific steps
 - ✅ `RENDER_FREE_TIER_GUIDE.md` - Free tier information
-- ✅ `SQLITE_REMOVAL_SUMMARY.md` - Important migration doc
 - ✅ `SUPABASE_SETUP_GUIDE.md` - Supabase setup guide
 - ✅ `SUPABASE_TABLES_GUIDE.md` - Tables verification guide
 
@@ -83,10 +82,10 @@ This is a comprehensive list of all cleanup tasks. Review and approve before exe
 2. **`ngrok.exe`** - Not needed (deployed to Render, no local ngrok needed)
 3. **`set_webhook.ps1`** - Can keep (useful for manual webhook setup) OR delete if not needed
 
-### **Database Files (SQLite - No Longer Used):**
+### **Database Files (Old - No Longer Used):**
 
-4. **`curie.db`** - SQLite database file (we use Supabase now)
-   - **Note:** Already in `.gitignore`, but file exists locally
+4. Old database files have been removed
+   - **Note:** All database files are cleaned up
 
 ### **Temporary/Development Files:**
 
@@ -198,7 +197,7 @@ This is a comprehensive list of all cleanup tasks. Review and approve before exe
 ### **HIGH PRIORITY (Safe to Delete):**
 
 - ✅ Old documentation files (40+ files)
-- ✅ `curie.db` (SQLite file)
+- ✅ Old database files (removed)
 - ✅ `create_admin_user.py` (replaced)
 - ✅ `ngrok.exe` (not needed for production)
 
@@ -222,7 +221,7 @@ This is a comprehensive list of all cleanup tasks. Review and approve before exe
 ### **Files to Delete:**
 - **Documentation:** ~40 files
 - **Scripts:** 2-3 files
-- **Database:** 1 file (curie.db)
+- **Database:** Old files removed
 - **Total:** ~44 files
 
 ### **Code Changes:**
@@ -239,7 +238,7 @@ This is a comprehensive list of all cleanup tasks. Review and approve before exe
 ## ✅ **RECOMMENDED CLEANUP ORDER**
 
 1. **Phase 1:** Delete old documentation (safe, no code impact)
-2. **Phase 2:** Delete unused files (curie.db, old scripts)
+2. **Phase 2:** Delete unused files (old scripts)
 3. **Phase 3:** Code cleanup (TODOs, imports, type hints)
 4. **Phase 4:** Dependencies review (openai, passlib)
 5. **Phase 5:** Documentation organization (optional)

@@ -141,7 +141,7 @@ This document tracks all changes and fixes made since the brand name change from
 
 ### 9. **Files Deleted**
 
-- `curie.db`: Old SQLite database file (as requested)
+- Old database files have been removed
 
 ---
 
@@ -208,7 +208,7 @@ This document tracks all changes and fixes made since the brand name change from
 ## ⚠️ Important Notes
 
 1. **Service Names**: Kept as `automify-ai-*` on Render to match existing services
-2. **Database**: Uses Supabase PostgreSQL (SQLite removed)
+2. **Database**: Uses Supabase PostgreSQL
 3. **Admin User**: Auto-creation only works if `ADMIN_PASSWORD` is set
 4. **CORS**: Production fallback ensures frontend always works even if env vars are incomplete
 

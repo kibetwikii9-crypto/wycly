@@ -13,8 +13,7 @@ I've prepared all the necessary files and configurations for Render deployment:
    - Ready to deploy
 
 2. **`app/database.py`** ✅
-   - Updated to support both SQLite (local) and PostgreSQL (Render)
-   - Automatically detects database type
+   - Configured for Supabase PostgreSQL
    - No code changes needed
 
 3. **`app/main.py`** ✅
@@ -125,7 +124,7 @@ NEXT_PUBLIC_API_URL = (auto-set to your backend URL)
    - Tables are created automatically on first startup
 
 3. **File Storage**:
-   - SQLite files won't persist (use PostgreSQL)
+   - All data stored in Supabase PostgreSQL
    - Static files should be in Git
    - `faq.json` must be in repository
 
