@@ -9,7 +9,7 @@ from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Conversation, Lead, AnalyticsEvent, ChannelIntegration, User as UserModel, Message, ConversationMemory, KnowledgeEntry, AdAsset, Business
+from app.models import Conversation, Lead, AnalyticsEvent, ChannelIntegration, User as UserModel, Message, ConversationMemory, KnowledgeEntry, AdAsset, Business, Invoice, Expense, Payment
 from app.routes.auth import get_current_user, get_user_business_id
 
 log = logging.getLogger(__name__)
@@ -329,6 +329,47 @@ async def get_overview(
     day_names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     best_day_name = day_names[best_day] if best_day is not None else None
 
+    # Financial Summary (if business_id exists)
+    financial_summary = None
+    if business_id is not None:
+        # Revenue from paid invoices
+        revenue_filter = and_(
+            Invoice.business_id == business_id,
+            Invoice.status == "paid",
+            Invoice.paid_date >= start_date
+        )
+        revenue = db.query(func.sum(Invoice.total_amount)).filter(revenue_filter).scalar() or 0.0
+        
+        # Expenses
+        expense_filter = and_(
+            Expense.business_id == business_id,
+            Expense.expense_date >= start_date
+        )
+        expenses = db.query(func.sum(Expense.amount)).filter(expense_filter).scalar() or 0.0
+        
+        # Pending invoices
+        pending_invoices_filter = and_(
+            Invoice.business_id == business_id,
+            Invoice.status.in_(["draft", "sent"])
+        )
+        pending_invoices = db.query(func.sum(Invoice.total_amount)).filter(pending_invoices_filter).scalar() or 0.0
+        
+        # Total payments
+        payment_filter = and_(
+            Payment.business_id == business_id,
+            Payment.payment_date >= start_date,
+            Payment.status == "completed"
+        )
+        total_payments = db.query(func.sum(Payment.amount)).filter(payment_filter).scalar() or 0.0
+        
+        financial_summary = {
+            "revenue": float(revenue),
+            "expenses": float(expenses),
+            "profit": float(revenue - expenses),
+            "pending_invoices": float(pending_invoices),
+            "total_payments": float(total_payments),
+        }
+    
     return {
         # Existing data
         "total_conversations": total_conversations,
@@ -357,6 +398,7 @@ async def get_overview(
             "leads_captured": leads_captured,
             "human_handoffs": human_handoffs,
         },
+        "financial_summary": financial_summary,
         "alerts": alerts[:5],  # Limit to 5 most important
         "recent_activity": recent_events[:10],  # Limit to 10 most recent
         "lead_snapshot": {

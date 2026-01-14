@@ -23,6 +23,10 @@ import {
   CreditCard,
   Brain,
   Mic,
+  DollarSign,
+  TrendingDown,
+  Wallet,
+  Receipt,
 } from 'lucide-react';
 
 interface SystemHealth {
@@ -100,6 +104,13 @@ interface OverviewData {
   recent_activity: RecentActivity[];
   lead_snapshot: LeadSnapshot;
   time_insights: TimeInsights;
+  financial_summary?: {
+    revenue: number;
+    expenses: number;
+    profit: number;
+    pending_invoices: number;
+    total_payments: number;
+  };
 }
 
 export default function DashboardPage() {
@@ -277,6 +288,86 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Financial Summary */}
+      {data?.financial_summary && (
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="px-4 py-5 sm:p-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
+              Financial Overview
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
+                  <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Revenue</p>
+                  <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                    ${data.financial_summary.revenue.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20">
+                  <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Expenses</p>
+                  <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                    ${data.financial_summary.expenses.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg ${
+                  data.financial_summary.profit >= 0 
+                    ? 'bg-green-50 dark:bg-green-900/20' 
+                    : 'bg-red-50 dark:bg-red-900/20'
+                }`}>
+                  <TrendingUp className={`h-5 w-5 ${
+                    data.financial_summary.profit >= 0 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : 'text-red-600 dark:text-red-400'
+                  }`} />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Profit</p>
+                  <p className={`text-sm font-medium ${
+                    data.financial_summary.profit >= 0 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : 'text-red-600 dark:text-red-400'
+                  }`}>
+                    ${data.financial_summary.profit.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+                  <Receipt className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Pending</p>
+                  <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+                    ${data.financial_summary.pending_invoices.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                  <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Payments</p>
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                    ${data.financial_summary.total_payments.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* System Health Snapshot */}
       {data?.system_health && (

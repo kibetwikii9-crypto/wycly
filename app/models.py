@@ -608,3 +608,527 @@ class OnboardingProgress(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+
+# ========== CRM MODELS ==========
+
+class Contact(Base):
+    """
+    Contact model for CRM - enhanced version of Lead.
+    """
+    __tablename__ = "contacts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=True)
+    email = Column(String, nullable=True, index=True)
+    phone = Column(String, nullable=True, index=True)
+    company = Column(String, nullable=True)
+    job_title = Column(String, nullable=True)
+    address = Column(Text, nullable=True)
+    city = Column(String, nullable=True)
+    country = Column(String, nullable=True)
+    tags = Column(Text, nullable=True)  # JSON array
+    notes = Column(Text, nullable=True)
+    source = Column(String, nullable=True)  # How they found us
+    status = Column(String, default="lead", nullable=False, index=True)  # lead, customer, prospect, etc.
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Interaction(Base):
+    """
+    Interaction history for contacts (calls, emails, meetings, etc.)
+    """
+    __tablename__ = "interactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    contact_id = Column(Integer, ForeignKey("contacts.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    type = Column(String, nullable=False)  # call, email, meeting, note, etc.
+    subject = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
+    interaction_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PipelineStage(Base):
+    """
+    Sales pipeline stages (Lead → Qualified → Proposal → Closed Won/Lost)
+    """
+    __tablename__ = "pipeline_stages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    order = Column(Integer, nullable=False, default=0)
+    color = Column(String, nullable=True)  # For UI display
+    is_default = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PipelineOpportunity(Base):
+    """
+    Sales opportunities in the pipeline.
+    """
+    __tablename__ = "pipeline_opportunities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    contact_id = Column(Integer, ForeignKey("contacts.id"), nullable=False, index=True)
+    stage_id = Column(Integer, ForeignKey("pipeline_stages.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    value = Column(Float, nullable=True)  # Expected deal value
+    currency = Column(String, default="USD", nullable=False)
+    probability = Column(Integer, default=0, nullable=False)  # 0-100%
+    expected_close_date = Column(DateTime, nullable=True)
+    assigned_to_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# ========== FINANCE MODELS ==========
+
+class Invoice(Base):
+    """
+    Invoice model for billing customers.
+    """
+    __tablename__ = "invoices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    invoice_number = Column(String, unique=True, nullable=False, index=True)
+    contact_id = Column(Integer, ForeignKey("contacts.id"), nullable=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=True, index=True)
+    status = Column(String, default="draft", nullable=False, index=True)  # draft, sent, paid, overdue, cancelled
+    issue_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    due_date = Column(DateTime, nullable=True)
+    paid_date = Column(DateTime, nullable=True)
+    subtotal = Column(Float, nullable=False)
+    tax_amount = Column(Float, default=0.0, nullable=False)
+    discount_amount = Column(Float, default=0.0, nullable=False)
+    total_amount = Column(Float, nullable=False)
+    currency = Column(String, default="USD", nullable=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class InvoiceItem(Base):
+    """
+    Invoice line items.
+    """
+    __tablename__ = "invoice_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    invoice_id = Column(Integer, ForeignKey("invoices.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
+    service_id = Column(Integer, ForeignKey("services.id"), nullable=True)
+    description = Column(String, nullable=False)
+    quantity = Column(Float, nullable=False, default=1.0)
+    unit_price = Column(Float, nullable=False)
+    tax_rate = Column(Float, default=0.0, nullable=False)
+    total = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class Expense(Base):
+    """
+    Business expense tracking.
+    """
+    __tablename__ = "expenses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    category_id = Column(Integer, ForeignKey("expense_categories.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    description = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    currency = Column(String, default="USD", nullable=False)
+    expense_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    receipt_url = Column(String, nullable=True)
+    payment_method = Column(String, nullable=True)  # cash, card, bank_transfer, etc.
+    vendor = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class ExpenseCategory(Base):
+    """
+    Expense categories for organization.
+    """
+    __tablename__ = "expense_categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    color = Column(String, nullable=True)  # For UI display
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class Payment(Base):
+    """
+    Payment records (for invoices, orders, etc.)
+    """
+    __tablename__ = "payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    invoice_id = Column(Integer, ForeignKey("invoices.id"), nullable=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=True, index=True)
+    payment_method_id = Column(Integer, ForeignKey("payment_methods.id"), nullable=True, index=True)
+    amount = Column(Float, nullable=False)
+    currency = Column(String, default="USD", nullable=False)
+    payment_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    reference_number = Column(String, nullable=True)
+    status = Column(String, default="pending", nullable=False, index=True)  # pending, completed, failed, refunded
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class PaymentMethod(Base):
+    """
+    Payment methods (Mobile Money, PayPal, Bank, etc.)
+    """
+    __tablename__ = "payment_methods"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)  # M-Pesa, PayPal, Bank Transfer, etc.
+    type = Column(String, nullable=False)  # mobile_money, card, bank, digital_wallet
+    is_active = Column(Boolean, default=True, nullable=False)
+    credentials = Column(Text, nullable=True)  # JSON string for API keys, etc.
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class TaxRate(Base):
+    """
+    Tax rate configuration (VAT, Sales Tax, etc.)
+    """
+    __tablename__ = "tax_rates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)  # VAT, Sales Tax, etc.
+    rate = Column(Float, nullable=False)  # Percentage (e.g., 16.0 for 16%)
+    is_default = Column(Boolean, default=False, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class TaxTransaction(Base):
+    """
+    Tax transactions for reporting.
+    """
+    __tablename__ = "tax_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    tax_rate_id = Column(Integer, ForeignKey("tax_rates.id"), nullable=False, index=True)
+    invoice_id = Column(Integer, ForeignKey("invoices.id"), nullable=True, index=True)
+    amount = Column(Float, nullable=False)
+    transaction_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ========== INVENTORY MODELS ==========
+
+class ProductVariant(Base):
+    """
+    Product variants (size, color, etc.)
+    """
+    __tablename__ = "product_variants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)  # e.g., "Red - Large"
+    sku = Column(String, nullable=True, index=True)
+    price = Column(Float, nullable=True)  # Override product price if different
+    stock_quantity = Column(Integer, default=0, nullable=False)
+    low_stock_threshold = Column(Integer, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class InventoryTransaction(Base):
+    """
+    Inventory movement history (stock in, stock out, adjustments)
+    """
+    __tablename__ = "inventory_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False, index=True)
+    variant_id = Column(Integer, ForeignKey("product_variants.id"), nullable=True, index=True)
+    type = Column(String, nullable=False, index=True)  # stock_in, stock_out, adjustment, return
+    quantity = Column(Integer, nullable=False)
+    previous_quantity = Column(Integer, nullable=True)
+    new_quantity = Column(Integer, nullable=False)
+    reason = Column(String, nullable=True)
+    reference_id = Column(Integer, nullable=True)  # Link to order, purchase order, etc.
+    reference_type = Column(String, nullable=True)  # order, purchase_order, adjustment, etc.
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+# ========== PURCHASING MODELS ==========
+
+class Supplier(Base):
+    """
+    Supplier/vendor management.
+    """
+    __tablename__ = "suppliers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    contact_person = Column(String, nullable=True)
+    email = Column(String, nullable=True, index=True)
+    phone = Column(String, nullable=True)
+    address = Column(Text, nullable=True)
+    payment_terms = Column(String, nullable=True)  # e.g., "Net 30"
+    notes = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class PurchaseOrder(Base):
+    """
+    Purchase orders to suppliers.
+    """
+    __tablename__ = "purchase_orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False, index=True)
+    po_number = Column(String, unique=True, nullable=False, index=True)
+    status = Column(String, default="pending", nullable=False, index=True)  # pending, ordered, received, paid, cancelled
+    order_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    expected_delivery_date = Column(DateTime, nullable=True)
+    received_date = Column(DateTime, nullable=True)
+    subtotal = Column(Float, nullable=False)
+    tax_amount = Column(Float, default=0.0, nullable=False)
+    total_amount = Column(Float, nullable=False)
+    currency = Column(String, default="USD", nullable=False)
+    notes = Column(Text, nullable=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class PurchaseOrderItem(Base):
+    """
+    Purchase order line items.
+    """
+    __tablename__ = "purchase_order_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    purchase_order_id = Column(Integer, ForeignKey("purchase_orders.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True, index=True)
+    description = Column(String, nullable=False)
+    quantity = Column(Float, nullable=False)
+    unit_price = Column(Float, nullable=False)
+    total = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ========== PROJECTS & TASKS MODELS ==========
+
+class Project(Base):
+    """
+    Project management.
+    """
+    __tablename__ = "projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(String, default="planning", nullable=False, index=True)  # planning, active, on_hold, completed, cancelled
+    priority = Column(String, default="medium", nullable=False, index=True)  # low, medium, high, urgent
+    start_date = Column(DateTime, nullable=True)
+    due_date = Column(DateTime, nullable=True)
+    completed_date = Column(DateTime, nullable=True)
+    progress = Column(Integer, default=0, nullable=False)  # 0-100%
+    assigned_to_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Task(Base):
+    """
+    Task management.
+    """
+    __tablename__ = "tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(String, default="todo", nullable=False, index=True)  # todo, in_progress, review, done, cancelled
+    priority = Column(String, default="medium", nullable=False, index=True)  # low, medium, high, urgent
+    due_date = Column(DateTime, nullable=True)
+    completed_date = Column(DateTime, nullable=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class TaskAssignment(Base):
+    """
+    Task assignments to users.
+    """
+    __tablename__ = "task_assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    assigned_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    assigned_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class TaskComment(Base):
+    """
+    Comments on tasks.
+    """
+    __tablename__ = "task_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    comment = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ========== MESSAGING MODELS ==========
+
+class Channel(Base):
+    """
+    Internal messaging channels (teams, groups).
+    """
+    __tablename__ = "channels"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    is_private = Column(Boolean, default=False, nullable=False)
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class ChannelMember(Base):
+    """
+    Channel members.
+    """
+    __tablename__ = "channel_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    channel_id = Column(Integer, ForeignKey("channels.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    joined_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class InternalMessage(Base):
+    """
+    Internal team messages.
+    """
+    __tablename__ = "internal_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    channel_id = Column(Integer, ForeignKey("channels.id"), nullable=True, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # For direct messages
+    message = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False)
+    read_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class MessageAttachment(Base):
+    """
+    File attachments for internal messages.
+    """
+    __tablename__ = "message_attachments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    message_id = Column(Integer, ForeignKey("internal_messages.id"), nullable=False, index=True)
+    file_url = Column(String, nullable=False)
+    file_name = Column(String, nullable=False)
+    file_size = Column(Integer, nullable=True)
+    file_type = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ========== EMAIL MODELS ==========
+
+class EmailTemplate(Base):
+    """
+    Email templates for automated communications.
+    """
+    __tablename__ = "email_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    body = Column(Text, nullable=False)  # HTML or plain text
+    variables = Column(Text, nullable=True)  # JSON array of available variables
+    category = Column(String, nullable=True, index=True)  # invoice, reminder, welcome, etc.
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# ========== AUTOMATION MODELS ==========
+
+class RecurringTask(Base):
+    """
+    Recurring tasks and reminders.
+    """
+    __tablename__ = "recurring_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    frequency = Column(String, nullable=False)  # daily, weekly, monthly, yearly, custom
+    frequency_value = Column(Integer, nullable=True)  # For custom frequencies
+    next_run_date = Column(DateTime, nullable=False, index=True)
+    last_run_date = Column(DateTime, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class ScheduledJob(Base):
+    """
+    Scheduled jobs (reports, reminders, etc.)
+    """
+    __tablename__ = "scheduled_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    job_type = Column(String, nullable=False)  # report, reminder, backup, etc.
+    job_name = Column(String, nullable=False)
+    schedule = Column(String, nullable=False)  # cron expression or frequency
+    last_run = Column(DateTime, nullable=True)
+    next_run = Column(DateTime, nullable=True, index=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    config = Column(Text, nullable=True)  # JSON string for job configuration
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
