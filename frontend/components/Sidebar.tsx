@@ -164,7 +164,7 @@ const navigation: (NavItem | NavSection)[] = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [openSections, setOpenSections] = useState<Set<string>>(
-    new Set(navigation.filter((item): item is NavSection => 'items' in item && item.defaultOpen).map(item => item.name))
+    new Set(navigation.filter((item): item is NavSection => 'items' in item && (item.defaultOpen === true)).map(item => item.name))
   );
 
   const toggleSection = (sectionName: string) => {
