@@ -1132,3 +1132,137 @@ class ScheduledJob(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+
+# ========== HR & EMPLOYEE MANAGEMENT MODELS ==========
+
+class Department(Base):
+    """
+    Department/Team model for organizational structure.
+    """
+    __tablename__ = "departments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    manager_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    parent_department_id = Column(Integer, ForeignKey("departments.id"), nullable=True, index=True)  # For hierarchy
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Employee(Base):
+    """
+    Employee profile model - extends User with HR-specific information.
+    """
+    __tablename__ = "employees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
+    employee_number = Column(String, nullable=True, unique=True, index=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True, index=True)
+    position = Column(String, nullable=True)  # Job title
+    hire_date = Column(DateTime, nullable=True)
+    termination_date = Column(DateTime, nullable=True)
+    employment_type = Column(String, nullable=True)  # full_time, part_time, contract, intern
+    phone = Column(String, nullable=True)
+    address = Column(Text, nullable=True)
+    city = Column(String, nullable=True)
+    country = Column(String, nullable=True)
+    date_of_birth = Column(DateTime, nullable=True)
+    emergency_contact_name = Column(String, nullable=True)
+    emergency_contact_phone = Column(String, nullable=True)
+    salary = Column(Float, nullable=True)  # Monthly salary
+    currency = Column(String, default="USD", nullable=False)
+    notes = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Attendance(Base):
+    """
+    Employee attendance/time tracking.
+    """
+    __tablename__ = "attendance"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    date = Column(DateTime, nullable=False, index=True)
+    check_in = Column(DateTime, nullable=True)
+    check_out = Column(DateTime, nullable=True)
+    break_duration = Column(Integer, nullable=True)  # Minutes
+    total_hours = Column(Float, nullable=True)
+    status = Column(String, default="present", nullable=False, index=True)  # present, absent, late, leave, holiday
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class LeaveRequest(Base):
+    """
+    Employee leave/vacation requests.
+    """
+    __tablename__ = "leave_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    leave_type = Column(String, nullable=False)  # vacation, sick, personal, unpaid
+    start_date = Column(DateTime, nullable=False)
+    end_date = Column(DateTime, nullable=False)
+    days_requested = Column(Integer, nullable=False)
+    reason = Column(Text, nullable=True)
+    status = Column(String, default="pending", nullable=False, index=True)  # pending, approved, rejected, cancelled
+    approved_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    approved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class PerformanceReview(Base):
+    """
+    Employee performance reviews/evaluations.
+    """
+    __tablename__ = "performance_reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    review_period_start = Column(DateTime, nullable=False)
+    review_period_end = Column(DateTime, nullable=False)
+    reviewed_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    overall_rating = Column(Integer, nullable=True)  # 1-5 scale
+    goals_achieved = Column(Text, nullable=True)  # JSON or text
+    strengths = Column(Text, nullable=True)
+    areas_for_improvement = Column(Text, nullable=True)
+    comments = Column(Text, nullable=True)
+    status = Column(String, default="draft", nullable=False, index=True)  # draft, completed, archived
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class EmployeeDocument(Base):
+    """
+    Employee documents (contracts, certificates, etc.).
+    """
+    __tablename__ = "employee_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    document_type = Column(String, nullable=False)  # contract, certificate, id, resume, etc.
+    title = Column(String, nullable=False)
+    file_url = Column(String, nullable=False)
+    file_name = Column(String, nullable=False)
+    file_size = Column(Integer, nullable=True)
+    file_type = Column(String, nullable=True)
+    expiry_date = Column(DateTime, nullable=True)
+    notes = Column(Text, nullable=True)
+    uploaded_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+

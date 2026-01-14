@@ -38,6 +38,12 @@ import {
   PieChart,
   Activity,
   Workflow,
+  Briefcase,
+  Building2,
+  Clock,
+  Calendar,
+  Star,
+  FileCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -143,6 +149,21 @@ const navigation: (NavItem | NavSection)[] = [
       { name: 'Automation', href: '/dashboard/automation', icon: Workflow },
       { name: 'Knowledge Base', href: '/dashboard/knowledge', icon: BookOpen },
       { name: 'AI Rules', href: '/dashboard/ai-rules', icon: Zap },
+    ],
+  },
+  
+  // HR & Employees - Section
+  {
+    name: 'HR & Employees',
+    icon: Briefcase,
+    defaultOpen: false,
+    items: [
+      { name: 'Employees', href: '/dashboard/hr/employees', icon: Users2 },
+      { name: 'Departments', href: '/dashboard/hr/departments', icon: Building2 },
+      { name: 'Attendance', href: '/dashboard/hr/attendance', icon: Clock },
+      { name: 'Leave Requests', href: '/dashboard/hr/leave', icon: Calendar },
+      { name: 'Performance', href: '/dashboard/hr/performance', icon: Star },
+      { name: 'Documents', href: '/dashboard/hr/documents', icon: FileCheck },
     ],
   },
   
