@@ -36,7 +36,7 @@ export default function Header() {
     
     if (parts.length === 0) return 'Dashboard';
     
-    // Map common routes
+    // Map common routes - handle nested paths
     const routeMap: { [key: string]: string } = {
       'crm': 'CRM',
       'contacts': 'Contacts',
@@ -62,7 +62,6 @@ export default function Header() {
       'tasks': 'Tasks',
       'analytics': 'Analytics',
       'financial': 'Financial Analytics',
-      'performance': 'Performance Analytics',
       'handoff': 'Handoff',
       'automation': 'Automation',
       'knowledge': 'Knowledge Base',
@@ -72,7 +71,6 @@ export default function Header() {
       'departments': 'Departments',
       'attendance': 'Attendance',
       'leave': 'Leave Requests',
-      'performance': 'Performance Reviews',
       'documents': 'Employee Documents',
       'users': 'Users & Roles',
       'integrations': 'Integrations',
@@ -82,6 +80,21 @@ export default function Header() {
       'onboarding': 'Onboarding',
       'ads': 'Ad Studio',
     };
+    
+    // Handle nested paths (e.g., /dashboard/hr/performance vs /dashboard/analytics/performance)
+    if (parts.length >= 2) {
+      const parent = parts[parts.length - 2];
+      const child = parts[parts.length - 1];
+      
+      // HR performance reviews
+      if (parent === 'hr' && child === 'performance') {
+        return 'Performance Reviews';
+      }
+      // Analytics performance
+      if (parent === 'analytics' && child === 'performance') {
+        return 'Performance Analytics';
+      }
+    }
     
     // Get the last part of the path
     const lastPart = parts[parts.length - 1];
