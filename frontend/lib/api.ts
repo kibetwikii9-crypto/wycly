@@ -55,12 +55,8 @@ if (typeof window !== 'undefined') {
     console.warn('   This will fail on Render. Set it in Render dashboard environment variables.');
   }
   
-  if (rawApiUrl && !rawApiUrl.includes('://') && !rawApiUrl.includes('.')) {
-    console.error('❌ ERROR: NEXT_PUBLIC_API_URL appears to be just a service name!');
-    console.error('   Current value:', rawApiUrl);
-    console.error('   Expected format: https://wycly-backend-xxxx.onrender.com');
-    console.error('   Fix: Set NEXT_PUBLIC_API_URL in Render dashboard to the full backend URL');
-  }
+  // Note: The normalizeApiUrl function now auto-fixes service names by appending .onrender.com
+  // So we don't need to show an error here anymore
 }
 
 export const api = axios.create({
