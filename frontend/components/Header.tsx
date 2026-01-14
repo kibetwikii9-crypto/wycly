@@ -27,32 +27,72 @@ export default function Header() {
     }
   };
 
-  // Map pathname to readable page name
-  const getPageName = (path: string): string => {
-    if (path === '/dashboard') return 'Dashboard';
+  // Map pathname to category and page name
+  const getPageBreadcrumb = (path: string): { category: string; page: string } => {
+    if (path === '/dashboard') return { category: '', page: 'Dashboard' };
     
     // Remove /dashboard prefix and split by /
     const parts = path.replace('/dashboard', '').split('/').filter(Boolean);
     
-    if (parts.length === 0) return 'Dashboard';
+    if (parts.length === 0) return { category: '', page: 'Dashboard' };
     
-    // Map common routes - handle nested paths
-    const routeMap: { [key: string]: string } = {
-      'crm': 'CRM',
+    // Category mapping
+    const categoryMap: { [key: string]: string } = {
+      'crm': 'Customers & CRM',
+      'leads': 'Customers & CRM',
+      'conversations': 'Communication',
+      'messages': 'Communication',
+      'email-templates': 'Communication',
+      'sales-products': 'Sales & Inventory',
+      'sales': 'Sales & Inventory',
+      'products': 'Sales & Inventory',
+      'inventory': 'Sales & Inventory',
+      'orders': 'Sales & Inventory',
+      'purchasing': 'Sales & Inventory',
+      'suppliers': 'Sales & Inventory',
+      'finance': 'Finance',
+      'invoices': 'Finance',
+      'expenses': 'Finance',
+      'payments': 'Finance',
+      'reports': 'Finance',
+      'taxes': 'Finance',
+      'projects': 'Projects & Tasks',
+      'tasks': 'Projects & Tasks',
+      'analytics': 'Analytics & Reports',
+      'financial': 'Analytics & Reports',
+      'performance': 'Analytics & Reports',
+      'handoff': 'Operations',
+      'automation': 'Operations',
+      'knowledge': 'Operations',
+      'ai-rules': 'Operations',
+      'hr': 'HR & Employees',
+      'employees': 'HR & Employees',
+      'departments': 'HR & Employees',
+      'attendance': 'HR & Employees',
+      'leave': 'HR & Employees',
+      'documents': 'HR & Employees',
+      'users': 'Settings',
+      'integrations': 'Settings',
+      'security': 'Settings',
+      'settings': 'Settings',
+      'notifications': 'Settings',
+      'onboarding': 'Settings',
+      'ads': 'Settings',
+    };
+    
+    // Page name mapping
+    const pageMap: { [key: string]: string } = {
       'contacts': 'Contacts',
-      'pipeline': 'Sales Pipeline',
+      'pipeline': 'Pipeline',
       'leads': 'Leads',
       'conversations': 'Conversations',
       'messages': 'Internal Messages',
       'email-templates': 'Email Templates',
       'sales-products': 'Products',
-      'sales': 'Sales',
       'products': 'Products',
       'inventory': 'Inventory',
       'orders': 'Orders',
-      'purchasing': 'Purchasing',
       'suppliers': 'Suppliers',
-      'finance': 'Finance',
       'invoices': 'Invoices',
       'expenses': 'Expenses',
       'payments': 'Payments',
@@ -60,13 +100,12 @@ export default function Header() {
       'taxes': 'Taxes',
       'projects': 'Projects',
       'tasks': 'Tasks',
-      'analytics': 'Analytics',
+      'analytics': 'Sales Analytics',
       'financial': 'Financial Analytics',
       'handoff': 'Handoff',
       'automation': 'Automation',
       'knowledge': 'Knowledge Base',
       'ai-rules': 'AI Rules',
-      'hr': 'HR & Employees',
       'employees': 'Employees',
       'departments': 'Departments',
       'attendance': 'Attendance',
@@ -75,43 +114,65 @@ export default function Header() {
       'users': 'Users & Roles',
       'integrations': 'Integrations',
       'security': 'Security',
-      'settings': 'Settings',
+      'settings': 'General',
       'notifications': 'Notifications',
       'onboarding': 'Onboarding',
       'ads': 'Ad Studio',
     };
     
-    // Handle nested paths (e.g., /dashboard/hr/performance vs /dashboard/analytics/performance)
+    // Handle nested paths
     if (parts.length >= 2) {
       const parent = parts[parts.length - 2];
       const child = parts[parts.length - 1];
       
       // HR performance reviews
       if (parent === 'hr' && child === 'performance') {
-        return 'Performance Reviews';
+        return { category: 'HR & Employees', page: 'Performance Reviews' };
       }
       // Analytics performance
       if (parent === 'analytics' && child === 'performance') {
-        return 'Performance Analytics';
+        return { category: 'Analytics & Reports', page: 'Performance Analytics' };
       }
+      
+      // Get category from parent, page from child
+      const category = categoryMap[parent] || categoryMap[child] || '';
+      const page = pageMap[child] || child.split('-').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+      return { category, page };
     }
     
-    // Get the last part of the path
+    // Single level path
     const lastPart = parts[parts.length - 1];
-    return routeMap[lastPart] || lastPart.split('-').map(word => 
+    const category = categoryMap[lastPart] || '';
+    const page = pageMap[lastPart] || lastPart.split('-').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
+    
+    return { category, page };
   };
 
-  const pageName = getPageName(pathname);
+  const { category, page } = getPageBreadcrumb(pathname);
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {pageName}
-          </h1>
+        <div className="flex items-center space-x-2">
+          {category ? (
+            <>
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                {category}
+              </span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">›</span>
+              <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                {page}
+              </span>
+            </>
+          ) : (
+            <span className="text-xs font-semibold text-gray-900 dark:text-white">
+              {page}
+            </span>
+          )}
         </div>
         <div className="flex items-center space-x-4">
           <button
