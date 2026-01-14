@@ -82,45 +82,60 @@ This document tracks all changes and fixes made since the brand name change from
 
 ---
 
-### 5. **Admin User Auto-Creation Fixes**
+### 5. **Admin User Auto-Creation Fixes** ⚠️ **HISTORICAL - REMOVED**
 
-#### File: `app/main.py`
+**Note:** Admin auto-creation has been completely removed. Users now create accounts through the registration endpoint.
 
-**Changed:**
-- Lines 127-158: Simplified admin user creation:
+#### File: `app/main.py` (Historical)
+
+**Changed (Now Removed):**
+- Lines 127-158: Simplified admin user creation (REMOVED):
   - Removed complex connection handling
   - Back to simple `get_db_context()` approach
   - Added graceful error handling for `DuplicatePreparedStatement`
   - Only attempts creation if `ADMIN_PASSWORD` is set
   - Non-blocking: startup continues even if admin creation fails
 
-**Added:**
-- Line 151: Warning message if `ADMIN_PASSWORD` not set
-- Lines 153-157: Error handling that doesn't fail startup
+**Added (Now Removed):**
+- Line 151: Warning message if `ADMIN_PASSWORD` not set (REMOVED)
+- Lines 153-157: Error handling that doesn't fail startup (REMOVED)
+
+**Current Status:** Admin auto-creation completely removed. Users register through `/api/auth/register` endpoint.
 
 ---
 
-### 6. **Security Configuration**
+### 6. **Security Configuration** ⚠️ **UPDATED**
 
 #### File: `app/config.py`
 
-**Added:**
-- Lines 14-16: New settings:
-  - `secret_key`: JWT secret key (with warning if default used)
-  - `admin_email`: Admin user email (default: `admin@curie.com`)
-  - `admin_password`: Admin user password (required for auto-creation)
+**Current Settings:**
+- `secret_key`: JWT secret key (with warning if default used)
+- `admin_email`: REMOVED - No longer needed
+- `admin_password`: REMOVED - No longer needed
+
+**Historical (Removed):**
+- `admin_email`: Admin user email (default: `admin@curie.com`) - REMOVED
+- `admin_password`: Admin user password (required for auto-creation) - REMOVED
+
 - Lines 20-28: `__init__` method with warning for insecure default `SECRET_KEY`
 
 ---
 
-### 7. **Render Deployment Configuration**
+### 7. **Render Deployment Configuration** ⚠️ **UPDATED**
 
 #### File: `render.yaml`
 
-**Changed:**
-- Service names kept as `automify-ai-backend` and `automify-ai-frontend` (to match existing Render services)
-- Lines 27-30: Added `ADMIN_EMAIL` and `ADMIN_PASSWORD` to backend env vars
-- Line 25-26: Added `SECRET_KEY` to backend env vars
+**Current Configuration:**
+- Service names: `automify-ai-backend` and `automify-ai-frontend`
+- `SECRET_KEY` - Required (manually set)
+- `DATABASE_URL` - Required (Supabase connection string)
+- `BOT_TOKEN` - REMOVED - Users connect via dashboard
+- `ADMIN_EMAIL` - REMOVED - Users create accounts via registration
+- `ADMIN_PASSWORD` - REMOVED - Users create accounts via registration
+
+**Historical (Removed):**
+- Lines 27-30: Added `ADMIN_EMAIL` and `ADMIN_PASSWORD` to backend env vars - REMOVED
+- `BOT_TOKEN` environment variable - REMOVED
 
 **Note:** Service names were initially changed to `curie-*` but reverted to `automify-ai-*` to prevent duplicate services on Render.
 
@@ -169,7 +184,7 @@ This document tracks all changes and fixes made since the brand name change from
 3. **Solution**: 
    - Simplified to use standard `get_db_context()`
    - Added error handling that doesn't block startup
-   - Only runs if `ADMIN_PASSWORD` is provided
+   - Historical: Only runs if `ADMIN_PASSWORD` is provided (REMOVED)
 
 ---
 
@@ -209,8 +224,9 @@ This document tracks all changes and fixes made since the brand name change from
 
 1. **Service Names**: Kept as `automify-ai-*` on Render to match existing services
 2. **Database**: Uses Supabase PostgreSQL
-3. **Admin User**: Auto-creation only works if `ADMIN_PASSWORD` is set
+3. **Admin User**: REMOVED - Users create accounts through registration endpoint
 4. **CORS**: Production fallback ensures frontend always works even if env vars are incomplete
+5. **Bot Tokens**: REMOVED from env vars - Users connect their own bots via dashboard
 
 ---
 

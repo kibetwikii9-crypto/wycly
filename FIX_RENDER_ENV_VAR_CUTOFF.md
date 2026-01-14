@@ -18,19 +18,19 @@ The code now automatically adds `https://` if it's missing. So you can:
 1. **If using `render.yaml`**: Leave it as-is. The code will auto-add `https://` to the hostname.
 
 2. **If setting manually in Render dashboard**: 
-   - You can paste just the hostname: `automify-ai-backend-xxxx.onrender.com`
+   - You can paste just the hostname: `wycly-backend-xxxx.onrender.com`
    - The code will automatically add `https://` to it
    - This avoids the truncation issue
 
 ### Solution 2: Set It Manually (If Auto-Fix Doesn't Work)
 
-1. Go to **Render Dashboard** → **`automify-ai-backend`** service
+1. Go to **Render Dashboard** → **`wycly-backend`** service
 2. Click **"Environment"** tab
 3. Find `PUBLIC_URL`
 4. **Delete the existing value** (if any)
 5. **Paste just the hostname** (without `https://`):
    ```
-   automify-ai-backend-xxxx.onrender.com
+   wycly-backend-xxxx.onrender.com
    ```
 6. Click **"Save Changes"**
 7. The code will automatically add `https://` when needed
@@ -46,7 +46,7 @@ curl -X PATCH "https://api.render.com/v1/services/YOUR_SERVICE_ID/env-vars" \
   -H "Content-Type: application/json" \
   -d '{
     "envVars": {
-      "PUBLIC_URL": "https://automify-ai-backend-xxxx.onrender.com"
+      "PUBLIC_URL": "https://wycly-backend-xxxx.onrender.com"
     }
   }'
 ```
@@ -57,7 +57,7 @@ After setting `PUBLIC_URL`:
 
 1. **Check Render Logs**: After connecting a bot, look for:
    ```
-   Auto-added https:// to PUBLIC_URL. Original: automify-ai-backend-xxxx.onrender.com, Fixed: https://automify-ai-backend-xxxx.onrender.com
+   Auto-added https:// to PUBLIC_URL. Original: wycly-backend-xxxx.onrender.com, Fixed: https://wycly-backend-xxxx.onrender.com
    ```
 
 2. **Try Connecting Bot**: The webhook should now work correctly
@@ -74,12 +74,12 @@ The code now:
 
 **Option A (Recommended)**: Just the hostname
 ```
-automify-ai-backend-xxxx.onrender.com
+wycly-backend-xxxx.onrender.com
 ```
 
 **Option B**: Full URL (if it doesn't get cut off)
 ```
-https://automify-ai-backend-xxxx.onrender.com
+https://wycly-backend-xxxx.onrender.com
 ```
 
 Both will work - the code handles both cases!

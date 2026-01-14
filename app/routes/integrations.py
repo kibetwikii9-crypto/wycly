@@ -200,7 +200,7 @@ async def connect_telegram(
     from app.config import settings
     
     # Normalize PUBLIC_URL - handle common issues
-    # Render's fromService with property:host returns just the hostname (e.g., "automify-ai-backend-xxxx.onrender.com")
+    # Render's fromService with property:host returns just the hostname (e.g., "wycly-backend-xxxx.onrender.com")
     # We need to ensure it has https:// protocol
     public_url = (settings.public_url or "").strip()
     
@@ -209,7 +209,7 @@ async def connect_telegram(
     
     # If PUBLIC_URL doesn't start with http:// or https://, add https://
     if public_url and not public_url.startswith(("http://", "https://")):
-        # If it contains a dot, it's likely a hostname (e.g., "automify-ai-backend-xxxx.onrender.com")
+        # If it contains a dot, it's likely a hostname (e.g., "wycly-backend-xxxx.onrender.com")
         if "." in public_url:
             public_url = f"https://{public_url}"
             log.info(f"Auto-added https:// to PUBLIC_URL. Original: {settings.public_url}, Fixed: {public_url}")
@@ -224,7 +224,7 @@ async def connect_telegram(
         log.error("PUBLIC_URL is not set or is localhost. Cannot set webhook for production.")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Backend URL (PUBLIC_URL) is not configured. Please set PUBLIC_URL environment variable in Render dashboard to your full backend URL (e.g., https://automify-ai-backend-xxxx.onrender.com)."
+            detail="Backend URL (PUBLIC_URL) is not configured. Please set PUBLIC_URL environment variable in Render dashboard to your full backend URL (e.g., https://wycly-backend-xxxx.onrender.com)."
         )
     
     # Ensure webhook URL is HTTPS (Telegram requires HTTPS)
@@ -233,7 +233,7 @@ async def connect_telegram(
         log.error(f"Webhook URL must be HTTPS, got: {webhook_url}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Webhook URL must use HTTPS. Current PUBLIC_URL: {settings.public_url}, constructed URL: {webhook_url}. Please set PUBLIC_URL in Render dashboard to your full backend URL with https:// (e.g., https://automify-ai-backend-xxxx.onrender.com)."
+            detail=f"Webhook URL must use HTTPS. Current PUBLIC_URL: {settings.public_url}, constructed URL: {webhook_url}. Please set PUBLIC_URL in Render dashboard to your full backend URL with https:// (e.g., https://wycly-backend-xxxx.onrender.com)."
         )
     
     try:
@@ -512,7 +512,7 @@ async def test_telegram_connection(
         )
     
     # Send test message
-    test_message = "✅ Test message from Automify! Your Telegram bot is working correctly."
+    test_message = "✅ Test message from Wycly! Your Telegram bot is working correctly."
     try:
         send_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
         async with httpx.AsyncClient() as client:

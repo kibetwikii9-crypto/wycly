@@ -25,7 +25,7 @@ Tells the **backend** what its own public URL is. The backend uses this to:
 PUBLIC_URL=http://localhost:8000
 
 # Render (auto-set, but you can override)
-PUBLIC_URL=https://automify-ai-backend-xxxx.onrender.com
+PUBLIC_URL=https://wycly-backend-xxxx.onrender.com
 ```
 
 ### Used By
@@ -44,7 +44,7 @@ Tells the **frontend** where to send API requests. The frontend uses this to:
 
 ### Where to Set It
 - **Local Development**: `frontend/.env.local` file
-- **Render (Production)**: Render dashboard → `automify-ai-frontend` → Environment tab
+- **Render (Production)**: Render dashboard → `wycly-frontend` → Environment tab
 
 ### Example Values
 ```env
@@ -52,7 +52,7 @@ Tells the **frontend** where to send API requests. The frontend uses this to:
 NEXT_PUBLIC_API_URL=http://localhost:8000
 
 # Render (must be set manually or via render.yaml)
-NEXT_PUBLIC_API_URL=https://automify-ai-backend-xxxx.onrender.com
+NEXT_PUBLIC_API_URL=https://wycly-backend-xxxx.onrender.com
 ```
 
 ### Used By
@@ -74,13 +74,16 @@ project-root/
 ### Example `.env` (Root - Backend)
 ```env
 # Backend Configuration
-BOT_TOKEN=your_token
 PUBLIC_URL=http://localhost:8000          ← Backend's own URL
 FRONTEND_URL=http://localhost:3000
 DATABASE_URL=postgresql://...
 SECRET_KEY=your-secret-key
-ADMIN_EMAIL=admin@automify.com
-ADMIN_PASSWORD=admin123
+LOG_LEVEL=INFO
+OPENAI_API_KEY= (optional)
+
+# Note: BOT_TOKEN and ADMIN credentials are NOT needed.
+# Users connect their own Telegram bots through the dashboard.
+# Users create their own accounts through the registration endpoint.
 ```
 
 ### Example `frontend/.env.local` (Frontend)
@@ -93,11 +96,11 @@ NEXT_PUBLIC_API_URL=http://localhost:8000  ← Where frontend calls backend
 
 ## For Render (Production)
 
-### Backend Service (`automify-ai-backend`)
+### Backend Service (`wycly-backend`)
 - `PUBLIC_URL` - **Auto-set** by Render via `render.yaml` (using `fromService`)
 - You can override it manually in Render dashboard if needed
 
-### Frontend Service (`automify-ai-frontend`)
+### Frontend Service (`wycly-frontend`)
 - `NEXT_PUBLIC_API_URL` - **Should be set** in Render dashboard
 - Can be auto-set via `render.yaml`, but manual setting is more reliable
 
@@ -107,8 +110,8 @@ NEXT_PUBLIC_API_URL=http://localhost:8000  ← Where frontend calls backend
 
 | Variable | Used By | Purpose | Example |
 |----------|---------|---------|---------|
-| `PUBLIC_URL` | Backend | Backend's own URL | `https://automify-ai-backend.onrender.com` |
-| `NEXT_PUBLIC_API_URL` | Frontend | Where to call backend | `https://automify-ai-backend.onrender.com` |
+| `PUBLIC_URL` | Backend | Backend's own URL | `https://wycly-backend.onrender.com` |
+| `NEXT_PUBLIC_API_URL` | Frontend | Where to call backend | `https://wycly-backend.onrender.com` |
 
 **Note**: They often have the **same value**, but serve different purposes:
 - `PUBLIC_URL` = "I am the backend, this is my address"
@@ -156,7 +159,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 - `PUBLIC_URL` = Auto-set to backend URL
 
 **Frontend Service** (Set manually in dashboard):
-- `NEXT_PUBLIC_API_URL` = `https://automify-ai-backend-xxxx.onrender.com`
+- `NEXT_PUBLIC_API_URL` = `https://wycly-backend-xxxx.onrender.com`
 
 ---
 

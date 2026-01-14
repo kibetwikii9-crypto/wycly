@@ -186,7 +186,7 @@ BEGIN
         IF default_user_id IS NULL THEN
             -- Create a default admin user if no users exist
             INSERT INTO users (email, hashed_password, full_name, role, is_active, created_at, updated_at)
-            VALUES ('admin@automify.com', '$2b$12$default', 'Admin User', 'admin', true, NOW(), NOW())
+            VALUES ('admin@wycly.com', '$2b$12$default', 'Admin User', 'admin', true, NOW(), NOW())
             RETURNING id INTO default_user_id;
         END IF;
         

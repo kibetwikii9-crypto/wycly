@@ -331,7 +331,7 @@ async def telegram_webhook(update: TelegramUpdate):
 
 
 @router.post("/test-send", status_code=status.HTTP_200_OK)
-async def test_send_message(chat_id: int, message: str = "Test message from Automify bot", db: Session = Depends(get_db)):
+async def test_send_message(chat_id: int, message: str = "Test message from Wycly bot", db: Session = Depends(get_db)):
     """
     Test endpoint to verify bot can send messages.
     

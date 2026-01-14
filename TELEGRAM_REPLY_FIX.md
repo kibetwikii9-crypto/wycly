@@ -21,30 +21,30 @@ I've improved the Telegram webhook handler to better diagnose and handle reply i
 ### 4. **Test Endpoint Added**
    - New endpoint: `POST /telegram/test-send?chat_id=YOUR_CHAT_ID&message=Test`
    - Allows you to test if bot can send messages without waiting for a webhook
-   - Helps verify BOT_TOKEN is working
+   - Helps verify bot token is working
 
 ## How to Fix Telegram Replies
 
-### Step 1: Verify Webhook is Set
-Run your existing `set_webhook.ps1` script:
-```powershell
-.\set_webhook.ps1
-```
-When prompted, enter: `https://automify-ai-backend.onrender.com/telegram/webhook`
+### Step 1: Connect Your Telegram Bot
 
-### Step 2: Verify BOT_TOKEN in Render
-1. Go to Render dashboard → Backend service (`automify-ai-backend`)
-2. Go to Environment tab
-3. Verify `BOT_TOKEN` is set (your Telegram bot token)
-4. If missing, add it and redeploy
+1. Go to your dashboard: **Integrations → Telegram**
+2. Click **"Connect Bot"**
+3. Enter your Telegram bot token (from @BotFather)
+4. Click **"Connect"**
+5. The webhook will be automatically set up
+
+### Step 2: Verify Webhook is Set
+
+You can verify the webhook is set by checking the integration status in the dashboard, or by checking Render logs for webhook activity.
 
 ### Step 3: Test Bot Can Send Messages
-Use the new test endpoint to verify bot can send:
+
+Use the test endpoint to verify bot can send:
 ```powershell
 # Replace YOUR_CHAT_ID with your actual Telegram chat ID
 $chatId = YOUR_CHAT_ID
-$backendUrl = "https://automify-ai-backend.onrender.com"
-Invoke-RestMethod -Uri "$backendUrl/telegram/test-send?chat_id=$chatId&message=Test from Automify"
+$backendUrl = "https://wycly-backend.onrender.com"
+Invoke-RestMethod -Uri "$backendUrl/telegram/test-send?chat_id=$chatId&message=Test from Wycly"
 ```
 
 **To get your chat ID:**
@@ -53,6 +53,7 @@ Invoke-RestMethod -Uri "$backendUrl/telegram/test-send?chat_id=$chatId&message=T
 3. The chat_id will be in the logs
 
 ### Step 4: Check Render Logs
+
 After sending a message to your bot, check Render logs for:
 - ✅ `webhook_received` - Webhook is being received
 - ✅ `message_normalized` - Message was processed
@@ -60,9 +61,9 @@ After sending a message to your bot, check Render logs for:
 - ✅ `reply_sent` - Reply was sent successfully
 
 **If you see errors:**
-- `reply_send_failed` → Check BOT_TOKEN
+- `reply_send_failed` → Check bot token in database (via Integrations page)
 - `no_chat_id` → Check webhook payload structure
-- `HTTP error 401` → BOT_TOKEN is invalid
+- `HTTP error 401` → Bot token is invalid (reconnect via dashboard)
 - `HTTP error 403` → Bot is blocked by user
 
 ## Files Changed
@@ -72,7 +73,4 @@ After sending a message to your bot, check Render logs for:
 
 **No code was duplicated** - only improvements to existing functions.
 
-
-
-
-
+**Note:** Bot tokens are now stored in the database (per business) and connected through the dashboard UI, not via environment variables.

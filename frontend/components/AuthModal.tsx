@@ -290,7 +290,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }: Au
           <div className="flex justify-center pt-6 pb-4">
             <Image
               src="/logo-main-no-tagline.png"
-              alt="Automify"
+              alt="Wycly"
               width={200}
               height={66}
               className="h-16 w-auto dark:hidden"
@@ -298,7 +298,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }: Au
             />
             <Image
               src="/logo-white-no-tagline.png"
-              alt="Automify"
+              alt="Wycly"
               width={200}
               height={66}
               className="h-16 w-auto hidden dark:block"
@@ -468,7 +468,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = 'signin' }: Au
                     Create Account
                   </h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Get started with Automify today. Free trial available.
+                    Get started with Wycly today. Free trial available.
                   </p>
                 </div>
 

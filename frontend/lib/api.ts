@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Normalize NEXT_PUBLIC_API_URL so accidental relative values (like
-// "/automify-ai-backend" or bare hostnames) don't produce requests
+// "/wycly-backend" or bare hostnames) don't produce requests
 // that target the frontend host and produce 404s. This will also
 // remove trailing slashes.
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -23,11 +23,11 @@ function normalizeApiUrl(raw: string): string {
     return `https://${raw.replace(/^\/+/, '')}`;
   }
 
-  // Bare hostname (e.g. automify-ai-backend.onrender.com or just automify-ai-backend)
+  // Bare hostname (e.g. wycly-backend.onrender.com or just wycly-backend)
   // Render's fromService with property:host returns hostname without protocol
   if (/^[\w.-]+(\.[\w.-]+)*$/.test(raw)) {
-    // If it contains a dot, it's likely a full hostname (e.g., automify-ai-backend.onrender.com)
-    // If no dot, it might be just the service name (e.g., automify-ai-backend)
+    // If it contains a dot, it's likely a full hostname (e.g., wycly-backend.onrender.com)
+    // If no dot, it might be just the service name (e.g., wycly-backend)
     // For Render, we assume https://
     return `https://${raw.replace(/\/+$/u, '')}`;
   }
@@ -53,7 +53,7 @@ if (typeof window !== 'undefined') {
   if (rawApiUrl && !rawApiUrl.includes('://') && !rawApiUrl.includes('.')) {
     console.error('❌ ERROR: NEXT_PUBLIC_API_URL appears to be just a service name!');
     console.error('   Current value:', rawApiUrl);
-    console.error('   Expected format: https://automify-ai-backend-xxxx.onrender.com');
+    console.error('   Expected format: https://wycly-backend-xxxx.onrender.com');
     console.error('   Fix: Set NEXT_PUBLIC_API_URL in Render dashboard to the full backend URL');
   }
 }
@@ -88,7 +88,7 @@ api.interceptors.response.use(
       console.error('   1. NEXT_PUBLIC_API_URL is not set correctly in Render');
       console.error('   2. Frontend needs to be rebuilt after setting env var');
       console.error('   3. Backend service is not running');
-      console.error('   Fix: Check Render dashboard → automify-ai-frontend → Environment tab');
+      console.error('   Fix: Check Render dashboard → wycly-frontend → Environment tab');
     }
     
     if (error.response?.status === 401) {

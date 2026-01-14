@@ -191,14 +191,12 @@
 ## PART 3: TELEGRAM BOT NOT RESPONDING ISSUES
 
 ### Bot Token Issues
-145. BOT_TOKEN not set in .env file
-146. BOT_TOKEN set incorrectly (typo, extra spaces)
-147. BOT_TOKEN expired or revoked
-148. BOT_TOKEN belongs to different bot
-149. BOT_TOKEN format incorrect
-150. BOT_TOKEN not loaded from environment
-151. settings.bot_token is empty string
-152. settings.bot_token is None
+145. Bot token not connected via dashboard (Integrations → Telegram)
+146. Bot token expired or revoked (get new one from @BotFather)
+147. Bot token belongs to different bot
+148. Bot token format incorrect
+149. Bot token not stored in database (reconnect via dashboard)
+152. telegram_service.bot_token is None (check database integration)
 
 ### Webhook Configuration Issues
 153. Webhook not set in Telegram

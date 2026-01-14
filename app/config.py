@@ -11,10 +11,12 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     database_url: str  # Required: Supabase PostgreSQL connection string
     secret_key: str = "your-secret-key-change-in-production"  # JWT secret key (set via SECRET_KEY env var)
-    admin_email: str = "admin@automify.com"  # Admin user email (set via ADMIN_EMAIL env var)
-    admin_password: str = ""  # Admin user password (set via ADMIN_PASSWORD env var, required for auto-creation)
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=".env", 
+        env_file_encoding="utf-8",
+        extra="ignore"  # Ignore extra environment variables (like old ADMIN_PASSWORD, BOT_TOKEN)
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

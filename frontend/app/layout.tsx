@@ -6,8 +6,8 @@ import { Providers } from './providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Automify - AI Chatbot Dashboard',
-  description: 'Multi-channel AI chatbot, support, and marketing automation platform',
+  title: 'Wycly - Business Management System',
+  description: 'Complete business management platform with customer support, sales, and analytics',
   icons: {
     icon: [
       { url: '/favicon/favicon-16.png', sizes: '16x16', type: 'image/png' },

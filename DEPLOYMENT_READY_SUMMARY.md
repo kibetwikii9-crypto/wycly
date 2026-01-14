@@ -94,9 +94,12 @@ When deploying on Render, you'll set these in the dashboard:
 
 ### **Backend Service:**
 ```
-BOT_TOKEN = your_telegram_bot_token
+DATABASE_URL = postgresql://... (Your Supabase connection string)
+SECRET_KEY = your-generated-secret-key
 LOG_LEVEL = INFO
 OPENAI_API_KEY = (leave empty)
+
+Note: BOT_TOKEN and ADMIN credentials are NOT needed. Users connect their own Telegram bots and create accounts through registration.
 ```
 
 **Note**: These are auto-set by Render:

@@ -7,8 +7,8 @@ This is an updated version of the deployment guide that uses **Supabase** instea
 ## 📋 **BEFORE YOU START - Information Needed**
 
 1. ✅ **Git Repository URL**: Where is your code hosted?
-   - GitHub: `https://github.com/yourusername/curie`
-   - GitLab: `https://gitlab.com/yourusername/curie`
+   - GitHub: `https://github.com/yourusername/wycly`
+   - GitLab: `https://gitlab.com/yourusername/wycly`
    - Or other: `_________________`
 
 2. ✅ **Telegram Bot Token**: Your bot token
@@ -87,8 +87,8 @@ git push -u origin main
 
 1. Render will automatically detect `render.yaml` in your repository
 2. You'll see a preview of the services:
-   - `automify-ai-backend` (FastAPI)
-   - `automify-ai-frontend` (Next.js)
+   - `wycly-backend` (FastAPI)
+   - `wycly-frontend` (Next.js)
    - **Note**: No database service (we're using Supabase!)
 3. Click **"Apply"** to create the services
 
@@ -100,17 +100,15 @@ git push -u origin main
 
 While services are deploying, set environment variables:
 
-#### **For Backend Service (`automify-ai-backend`):**
+#### **For Backend Service (`wycly-backend`):**
 
-1. Go to your **Dashboard** → Click on **`automify-ai-backend`** service
+1. Go to your **Dashboard** → Click on **`wycly-backend`** service
 2. Go to **"Environment"** tab
 3. Add/Update these variables:
 
 ```
-BOT_TOKEN = your_telegram_bot_token_here
 DATABASE_URL = postgresql://postgres:yourpassword@db.xxxxx.supabase.co:5432/postgres
 SECRET_KEY = your_strong_secret_key_here
-ADMIN_PASSWORD = your_secure_admin_password
 LOG_LEVEL = INFO
 OPENAI_API_KEY = (leave empty)
 ```
@@ -120,15 +118,16 @@ OPENAI_API_KEY = (leave empty)
 - Replace `xxxxx` with your Supabase project reference
 - Get the full connection string from Supabase dashboard (Settings → Database → Connection string → URI)
 - Generate a strong `SECRET_KEY` (use: `python -c "import secrets; print(secrets.token_urlsafe(32))"`)
-- Set `ADMIN_PASSWORD` for admin auto-creation
+
+**Note:** BOT_TOKEN and ADMIN credentials are NOT needed. Users connect their own Telegram bots through the dashboard and create accounts through registration.
 
 **Note**: These are auto-set by Render:
 - `PUBLIC_URL` (your backend URL)
 - `FRONTEND_URL` (your frontend URL)
 
-#### **For Frontend Service (`automify-ai-frontend`):**
+#### **For Frontend Service (`wycly-frontend`):**
 
-1. Go to **Dashboard** → Click on **`automify-ai-frontend`** service
+1. Go to **Dashboard** → Click on **`wycly-frontend`** service
 2. Go to **"Environment"** tab
 3. `NEXT_PUBLIC_API_URL` is automatically set by Render (no action needed)
 
@@ -150,8 +149,8 @@ OPENAI_API_KEY = (leave empty)
 
 After deployment, you'll get URLs like:
 
-- **Backend**: `https://automify-ai-backend-xxxx.onrender.com`
-- **Frontend**: `https://automify-ai-frontend-xxxx.onrender.com`
+- **Backend**: `https://wycly-backend-xxxx.onrender.com`
+- **Frontend**: `https://wycly-frontend-xxxx.onrender.com`
 
 **Save these URLs!** You'll need them.
 
@@ -174,53 +173,47 @@ After backend is live, create an admin user:
 1. Go to your backend service → **"Shell"** tab
 2. Run this command:
 
-```bash
-python create_admin_auto.py
-```
+1. Go to your frontend URL: `https://wycly-frontend-xxxx.onrender.com`
+2. Click **"Sign Up"** to create your account
+3. Fill in your details (email, password, name)
+4. Click **"Sign Up"**
+5. You'll be automatically logged in
 
-Or use the Render **"Shell"** feature to run:
-
-```bash
-cd /opt/render/project/src
-python create_admin_auto.py
-```
-
-**✅ Checkpoint**: Admin user created.
+**✅ Checkpoint**: Account created and logged in.
 
 ---
 
 ### **Step 11: Update Telegram Webhook**
 
-1. Get your backend URL: `https://automify-ai-backend-xxxx.onrender.com`
+1. Get your backend URL: `https://wycly-backend-xxxx.onrender.com`
 2. Update Telegram webhook:
 
-**Option A: Using Browser**
-```
-https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=https://automify-ai-backend-xxxx.onrender.com/telegram/webhook
-```
+**Connect Telegram Bot via Dashboard:**
+1. Go to your frontend: `https://wycly-frontend-xxxx.onrender.com`
+2. Login to your account (create one if needed)
+3. Go to **Integrations → Telegram**
+4. Click **"Connect Bot"**
+5. Enter your bot token (from @BotFather)
+6. Click **"Connect"**
+7. Webhook will be automatically configured
 
-**Option B: Using PowerShell**
-```powershell
-$botToken = "your_bot_token_here"
-$webhookUrl = "https://automify-ai-backend-xxxx.onrender.com/telegram/webhook"
-Invoke-WebRequest -Uri "https://api.telegram.org/bot$botToken/setWebhook?url=$webhookUrl"
-```
-
-**✅ Checkpoint**: Telegram webhook updated.
+**✅ Checkpoint**: Telegram bot connected.
 
 ---
 
 ### **Step 12: Test Your Deployment**
 
-1. **Test Backend**: Visit `https://automify-ai-backend-xxxx.onrender.com/health`
+1. **Test Backend**: Visit `https://wycly-backend-xxxx.onrender.com/health`
    - Should return: `{"status":"ok"}`
 
-2. **Test Frontend**: Visit `https://automify-ai-frontend-xxxx.onrender.com`
+2. **Test Frontend**: Visit `https://wycly-frontend-xxxx.onrender.com`
    - Should show login page
 
-3. **Test Login**:
-   - Email: `admin@curie.com` (or your ADMIN_EMAIL env var)
-   - Password: (your ADMIN_PASSWORD env var)
+3. **Create Account and Login**:
+   - Go to frontend URL
+   - Click **"Sign Up"** to create your account
+   - Fill in your details and register
+   - You'll be automatically logged in
 
 4. **Test Telegram Bot**: Send a message to your Telegram bot
    - Should receive a response

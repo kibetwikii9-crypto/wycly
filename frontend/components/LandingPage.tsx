@@ -92,7 +92,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             <Image
               src="/logo-main-no-tagline.png"
-              alt="Automify"
+              alt="Wycly"
               width={200}
               height={66}
               className="h-14 w-auto dark:hidden"
@@ -100,14 +100,14 @@ export default function LandingPage() {
             />
             <Image
               src="/logo-white-no-tagline.png"
-              alt="Automify"
+              alt="Wycly"
               width={200}
               height={66}
               className="h-14 w-auto hidden dark:block"
               priority
             />
             <span className="text-2xl font-bold text-[#007FFF]">
-              Automify
+              Wycly
             </span>
           </div>
           <div className="flex items-center gap-4">
@@ -296,7 +296,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-2 mb-4">
                 <Image
                   src="/logo-white-no-tagline.png"
-                  alt="Automify"
+                  alt="Wycly"
                   width={180}
                   height={60}
                   className="h-12 w-auto"
@@ -370,7 +370,7 @@ export default function LandingPage() {
           </div>
           <div className="pt-8 border-t border-gray-800 text-center">
             <p className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} Automify. All rights reserved.
+              © {new Date().getFullYear()} Wycly. All rights reserved.
             </p>
           </div>
         </div>

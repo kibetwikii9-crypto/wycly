@@ -82,11 +82,13 @@ In Render dashboard, you'll need to set these environment variables:
 
 **Backend Service:**
 ```
-BOT_TOKEN=your_telegram_bot_token_here
 PUBLIC_URL=https://your-backend-service.onrender.com
-DATABASE_URL=postgresql://... (Render will provide this automatically)
+DATABASE_URL=postgresql://... (Your Supabase connection string)
+SECRET_KEY=your-generated-secret-key
 LOG_LEVEL=INFO
 OPENAI_API_KEY= (leave empty for now)
+
+Note: BOT_TOKEN and ADMIN credentials are NOT needed. Users connect their own Telegram bots through the dashboard and create accounts through registration.
 ```
 
 **Frontend Service:**

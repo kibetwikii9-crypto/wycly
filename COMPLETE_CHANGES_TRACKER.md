@@ -249,32 +249,23 @@ This document tracks ALL changes made starting from when logos, fonts, and brand
 
 ---
 
-## 📋 Phase 4: Admin User Auto-Creation Fixes
+## 📋 Phase 4: Admin User Auto-Creation Fixes ⚠️ **HISTORICAL - REMOVED**
 
-### 4.1 **Simplified Admin User Creation**
+**Note:** Admin auto-creation has been completely removed. Users now create accounts through the registration endpoint.
 
-**File:** `app/main.py`
+### 4.1 **Simplified Admin User Creation** (Historical - Now Removed)
 
-**Changes:**
-- **Lines 127-158**: Simplified admin user auto-creation logic
+**File:** `app/main.py` (Historical)
+
+**Changes (Now Removed):**
+- **Lines 127-158**: Simplified admin user auto-creation logic (REMOVED)
   - Removed complex connection handling
   - Uses simple `get_db_context()` approach
   - Only attempts creation if `ADMIN_PASSWORD` is set
   - Checks if user exists before creating
   - Non-blocking: Startup continues even if admin creation fails
 
-**Error Handling:**
-- **Lines 152-157**: Graceful error handling
-  - Catches `DuplicatePreparedStatement` errors
-  - Shows non-critical warning message
-  - Doesn't fail application startup
-
-**Logging:**
-- **Line 151**: Warning if `ADMIN_PASSWORD` not set
-- **Line 147**: Success message when admin exists
-- **Line 145**: Success message when admin created
-
-**Result:** Reliable admin user creation that doesn't block startup
+**Current Status:** Admin auto-creation completely removed. Users register through `/api/auth/register` endpoint.
 
 ---
 
@@ -308,14 +299,16 @@ This document tracks ALL changes made starting from when logos, fonts, and brand
   - Loaded from `SECRET_KEY` environment variable
   - Used for JWT token signing
 
-- **Line 15**: `admin_email` setting
-  - Default: `"admin@curie.com"`
-  - Loaded from `ADMIN_EMAIL` environment variable
+- **Line 15**: `admin_email` setting - REMOVED
+  - Historical: Default: `"admin@curie.com"`
+  - Historical: Loaded from `ADMIN_EMAIL` environment variable
+  - **Status**: REMOVED - No longer needed
 
-- **Line 16**: `admin_password` setting
-  - Default: `""` (empty)
-  - Loaded from `ADMIN_PASSWORD` environment variable
-  - Required for admin auto-creation
+- **Line 16**: `admin_password` setting - REMOVED
+  - Historical: Default: `""` (empty)
+  - Historical: Loaded from `ADMIN_PASSWORD` environment variable
+  - Historical: Required for admin auto-creation
+  - **Status**: REMOVED - No longer needed
 
 **Security Warning:**
 - **Lines 20-28**: `__init__` method with warning
@@ -341,13 +334,15 @@ This document tracks ALL changes made starting from when logos, fonts, and brand
   - `sync: false` (must be set manually)
   - Comment: "Set this manually - generate a strong random key"
 
-- **Lines 27-28**: `ADMIN_EMAIL`
-  - `value: admin@curie.com`
-  - Optional customization
+- **Lines 27-28**: `ADMIN_EMAIL` - REMOVED
+  - Historical: `value: admin@curie.com`
+  - Historical: Optional customization
+  - **Status**: REMOVED - Users create accounts via registration
 
-- **Lines 29-30**: `ADMIN_PASSWORD`
-  - `sync: false` (must be set manually)
-  - Required for admin auto-creation
+- **Lines 29-30**: `ADMIN_PASSWORD` - REMOVED
+  - Historical: `sync: false` (must be set manually)
+  - Historical: Required for admin auto-creation
+  - **Status**: REMOVED - Users create accounts via registration
 
 **Result:** Render deployment configuration updated with new security and admin settings
 
@@ -462,8 +457,9 @@ This document tracks ALL changes made starting from when logos, fonts, and brand
 
 1. **Service Names**: Kept as `automify-ai-*` on Render to match existing services
 2. **Database**: Uses Supabase PostgreSQL
-3. **Admin User**: Auto-creation only works if `ADMIN_PASSWORD` is set
+3. **Admin User**: REMOVED - Users create accounts through registration endpoint
 4. **CORS**: Production fallback ensures frontend always works even if env vars are incomplete
+5. **Bot Tokens**: REMOVED from env vars - Users connect their own bots via dashboard
 5. **Logos**: Files exist but not yet integrated into components (ready for future use)
 6. **Font**: Inter font is active and applied globally
 7. **Colors**: Primary blue color scheme (50-900) defined and used throughout UI

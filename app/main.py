@@ -24,7 +24,7 @@ from app.models import (
 
 init_logging(settings.log_level)
 
-app = FastAPI(title="Automify - Multi-Platform Messaging API", version="0.1.0")
+app = FastAPI(title="Wycly - Business Management System", version="0.1.0")
 
 # Add CORS middleware
 # Support both local development and production (Render)
@@ -94,7 +94,7 @@ if settings.frontend_url:
 # Always add the Render frontend URL if backend is on Render
 # This ensures CORS works even if FRONTEND_URL env var is not set
 if settings.public_url and "onrender.com" in settings.public_url:
-    render_frontend_url = "https://automify-ai-frontend.onrender.com"
+    render_frontend_url = "https://wycly-frontend.onrender.com"
     if render_frontend_url not in cors_origins:
         cors_origins.append(render_frontend_url)
         print(f"[OK] CORS: Added Render frontend URL: {render_frontend_url}")
@@ -118,7 +118,7 @@ elif not frontend_url_env and not settings.frontend_url:
 
 # Final safety check: If backend is on Render, always ensure frontend URL is included
 if settings.public_url and "onrender.com" in settings.public_url:
-    render_frontend_url = "https://automify-ai-frontend.onrender.com"
+    render_frontend_url = "https://wycly-frontend.onrender.com"
     if render_frontend_url not in cors_origins:
         cors_origins.append(render_frontend_url)
         print(f"[SAFETY] CORS: Ensured Render frontend URL is included: {render_frontend_url}")
@@ -176,10 +176,10 @@ async def global_exception_handler(request: Request, exc: Exception):
         allowed_origin = origin
     elif "*" in cors_origins:
         allowed_origin = "*"
-    elif origin == "https://automify-ai-frontend.onrender.com":
+    elif origin == "https://wycly-frontend.onrender.com":
         allowed_origin = origin
     elif "onrender.com" in str(settings.public_url):
-        allowed_origin = "https://automify-ai-frontend.onrender.com"
+        allowed_origin = "https://wycly-frontend.onrender.com"
     
     headers = {}
     if allowed_origin:
@@ -208,11 +208,11 @@ async def options_handler(full_path: str, request: Request):
         allowed_origin = origin
     elif "*" in cors_origins:
         allowed_origin = "*"
-    elif origin == "https://automify-ai-frontend.onrender.com":
+    elif origin == "https://wycly-frontend.onrender.com":
         allowed_origin = origin
     elif not origin and "onrender.com" in str(settings.public_url):
         # If no origin header but we're on Render, allow the frontend
-        allowed_origin = "https://automify-ai-frontend.onrender.com"
+        allowed_origin = "https://wycly-frontend.onrender.com"
     
     if allowed_origin:
         return JSONResponse(
@@ -230,7 +230,7 @@ async def options_handler(full_path: str, request: Request):
     return JSONResponse(
         content={"message": "OK"},
         headers={
-            "Access-Control-Allow-Origin": "https://automify-ai-frontend.onrender.com",
+            "Access-Control-Allow-Origin": "https://wycly-frontend.onrender.com",
             "Access-Control-Allow-Credentials": "true",
             "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
             "Access-Control-Allow-Headers": "*",
@@ -254,38 +254,9 @@ async def startup_event():
         else:
             print(f"[WARN] Database initialization error: {e}")
     
-    # Auto-create admin user if it doesn't exist
-    try:
-        from app.database import get_db_context
-        from app.services.auth import create_user, get_user_by_email
-        
-        admin_email = settings.admin_email
-        admin_password = settings.admin_password
-        
-        # Only auto-create admin if password is provided
-        if admin_password:
-            with get_db_context() as db:
-                existing = get_user_by_email(db, admin_email)
-                if not existing:
-                    admin_user = create_user(
-                        db,
-                        email=admin_email,
-                        password=admin_password,
-                        full_name="Admin User",
-                        role="admin"
-                    )
-                    print(f"[OK] Admin user auto-created: {admin_email}")
-                else:
-                    print(f"[OK] Admin user already exists: {admin_email}")
-        else:
-            print(f"[WARN] Admin password not set (ADMIN_PASSWORD env var). Skipping admin auto-creation.")
-    except Exception as e:
-        # Handle DuplicatePreparedStatement errors gracefully (non-critical)
-        if "DuplicatePreparedStatement" in str(e):
-            print(f"[WARN] Admin user creation skipped (database connection issue, non-critical)")
-        else:
-            print(f"[WARN] Admin user creation error: {e}")
-        # Don't fail startup if admin creation fails
+    # Admin users should be created through registration endpoint
+    # No auto-creation - users create their own accounts
+    print("[OK] Application ready. Users can register through /api/auth/register endpoint.")
     
     # Load knowledge base
     if load_knowledge("faq.json"):

@@ -162,7 +162,7 @@ export default function ConnectTelegramModal({ isOpen, onClose, onSuccess }: Con
                 </h2>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Follow the steps below to connect your Telegram bot to Automify
+                Follow the steps below to connect your Telegram bot to Wycly
               </p>
             </div>
 

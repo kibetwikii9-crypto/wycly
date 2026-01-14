@@ -6,15 +6,16 @@
 
 Your `.env` file should have these values for localhost:
 ```env
-BOT_TOKEN=your_telegram_bot_token_here
 PUBLIC_URL=http://localhost:8000
 FRONTEND_URL=http://localhost:3000
 DATABASE_URL=your_supabase_postgresql_url
 SECRET_KEY=your-secret-key-here
-ADMIN_EMAIL=admin@curie.com
-ADMIN_PASSWORD=admin123
 LOG_LEVEL=INFO
 OPENAI_API_KEY=
+
+# Note: BOT_TOKEN and ADMIN credentials are NOT needed.
+# Users connect their own Telegram bots through the dashboard.
+# Users create their own accounts through the registration endpoint.
 ```
 
 ### 2. Frontend Setup
@@ -50,11 +51,13 @@ npm run dev
 - **Backend API:** http://localhost:8000
 - **API Docs:** http://localhost:8000/docs
 
-### 6. Test Login
+### 6. Create Account and Login
 
-Default admin credentials (if auto-created):
-- **Email:** admin@curie.com
-- **Password:** (whatever you set in ADMIN_PASSWORD, or run `python create_admin_auto.py`)
+1. Go to http://localhost:3000
+2. Click **"Sign Up"** to create your account
+3. Fill in your details and register
+4. You'll be automatically logged in after registration
+5. You can then connect your Telegram bot through the dashboard (Integrations page)
 
 ## Troubleshooting
 

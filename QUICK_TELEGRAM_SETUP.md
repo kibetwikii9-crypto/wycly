@@ -1,46 +1,27 @@
 # Quick Telegram Setup Guide
 
-## Step 1: Set Webhook (Run this script)
+## Step 1: Connect Your Telegram Bot
 
-```powershell
-.\set_webhook_simple.ps1
-```
+1. **Create a Telegram Bot** (if you haven't already):
+   - Open Telegram and search for **@BotFather**
+   - Send `/newbot` command
+   - Follow the instructions to create your bot
+   - Copy the bot token you receive
 
-This will automatically set your webhook to: `https://automify-ai-backend.onrender.com/telegram/webhook`
-
-**OR** run this one-liner:
-```powershell
-$botToken = (Get-Content .env | Where-Object { $_ -match "^BOT_TOKEN=" }) -replace "BOT_TOKEN=", "" -replace '"', ""
-$webhookUrl = "https://automify-ai-backend.onrender.com/telegram/webhook"
-Invoke-RestMethod -Uri "https://api.telegram.org/bot$botToken/setWebhook?url=$webhookUrl"
-```
-
----
-
-## Step 2: Verify BOT_TOKEN in Render
-
-1. Go to: https://dashboard.render.com
-2. Click on your backend service: `automify-ai-backend`
-3. Click on **Environment** tab
-4. Look for `BOT_TOKEN` in the list
-5. **If it's missing:**
-   - Click **Add Environment Variable**
-   - Key: `BOT_TOKEN`
-   - Value: Your Telegram bot token (same as in your `.env` file)
-   - Click **Save Changes**
-   - Render will automatically redeploy
-
-**To get your bot token:**
-- If you created the bot via @BotFather on Telegram, check your messages
-- Or check your `.env` file: `BOT_TOKEN=your_token_here`
+2. **Connect Bot in Dashboard**:
+   - Go to your dashboard: **Integrations → Telegram**
+   - Click **"Connect Bot"** button
+   - Enter your Telegram bot token (from @BotFather)
+   - Click **"Connect"**
+   - The webhook will be automatically configured
 
 ---
 
-## Step 3: Test the Bot
+## Step 2: Test the Bot
 
 1. **Send a message to your bot** on Telegram
 2. **Check Render logs:**
-   - Go to: https://dashboard.render.com → `automify-ai-backend` → **Logs** tab
+   - Go to: https://dashboard.render.com → `wycly-backend` → **Logs** tab
    - Look for these log messages:
      - ✅ `webhook_received update_id=...` - Webhook is working
      - ✅ `message_normalized user_id=...` - Message was processed
@@ -48,22 +29,22 @@ Invoke-RestMethod -Uri "https://api.telegram.org/bot$botToken/setWebhook?url=$we
      - ✅ `reply_sent chat_id=...` - Reply was sent successfully
 
 **If you see errors:**
-- `reply_send_failed` → BOT_TOKEN is missing or wrong in Render
+- `reply_send_failed` → Check bot token in database (reconnect via dashboard)
 - `no_chat_id` → Webhook payload issue (check logs for details)
-- `HTTP error 401` → BOT_TOKEN is invalid
+- `HTTP error 401` → Bot token is invalid (get new token from @BotFather)
 - `HTTP error 403` → Bot is blocked by user
 
 ---
 
-## Step 4: Test Endpoint (Optional)
+## Step 3: Test Endpoint (Optional)
 
-You can test if the bot can send messages using the new test endpoint:
+You can test if the bot can send messages using the test endpoint:
 
 ```powershell
 # Replace YOUR_CHAT_ID with your actual Telegram chat ID
 # (You'll see it in the logs when you send a message)
 $chatId = YOUR_CHAT_ID
-$backendUrl = "https://automify-ai-backend.onrender.com"
+$backendUrl = "https://wycly-backend.onrender.com"
 Invoke-RestMethod -Uri "$backendUrl/telegram/test-send?chat_id=$chatId&message=Test from Automify"
 ```
 
@@ -77,29 +58,28 @@ Invoke-RestMethod -Uri "$backendUrl/telegram/test-send?chat_id=$chatId&message=T
 
 ## Troubleshooting
 
-### Webhook not set?
-- Make sure your backend is deployed and "Live" on Render
-- Check that the URL is accessible: https://automify-ai-backend.onrender.com/health
-
 ### Bot not replying?
 1. Check Render logs for errors
-2. Verify BOT_TOKEN is set in Render (not just in `.env`)
-3. Make sure webhook is set correctly (run `set_webhook_simple.ps1` again)
+2. Verify bot is connected via dashboard (Integrations → Telegram)
+3. Make sure webhook is set correctly (should be automatic when connecting)
 4. Check if bot is blocked by user (unblock if needed)
+5. Verify bot token is valid (test with @BotFather)
+
+### Webhook not working?
+- Make sure your backend is deployed and "Live" on Render
+- Check that the URL is accessible: https://wycly-backend.onrender.com/health
+- Verify bot is connected through the dashboard (Integrations page)
 
 ### Still not working?
-Run the diagnostic script:
-```powershell
-.\check_telegram_bot.ps1
-```
+1. Disconnect and reconnect your bot via the dashboard
+2. Check Render logs for detailed error messages
+3. Verify your bot token is correct (get new one from @BotFather if needed)
 
-This will check:
-- Bot token validity
-- Webhook status
-- Backend health
-- Webhook endpoint accessibility
+---
 
+## Important Notes
 
-
-
-
+- **Bot tokens are stored in the database** (per business), not in environment variables
+- **Each business can connect their own bot** through the dashboard
+- **Webhook is automatically configured** when you connect a bot
+- **No environment variables needed** for Telegram integration

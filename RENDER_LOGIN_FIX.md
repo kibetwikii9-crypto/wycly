@@ -7,18 +7,18 @@ Login works on localhost but fails on Render. This is usually because the fronte
 
 ### 1. Check Environment Variable in Render Dashboard
 
-1. Go to **Render Dashboard** → Click on **`automify-ai-frontend`** service
+1. Go to **Render Dashboard** → Click on **`wycly-frontend`** service
 2. Go to **"Environment"** tab
 3. Check if `NEXT_PUBLIC_API_URL` is set
-4. It should be something like: `https://automify-ai-backend-xxxx.onrender.com`
+4. It should be something like: `https://wycly-backend-xxxx.onrender.com`
 
 ### 2. If `NEXT_PUBLIC_API_URL` is Missing or Wrong
 
 **Option A: Manual Setup (Recommended)**
-1. In Render Dashboard → `automify-ai-frontend` → Environment tab
+1. In Render Dashboard → `wycly-frontend` → Environment tab
 2. Add/Update environment variable:
    ```
-   NEXT_PUBLIC_API_URL = https://automify-ai-backend-xxxx.onrender.com
+   NEXT_PUBLIC_API_URL = https://wycly-backend-xxxx.onrender.com
    ```
    (Replace `xxxx` with your actual backend service ID)
 
@@ -30,16 +30,16 @@ Login works on localhost but fails on Render. This is usually because the fronte
 
 **Important**: Next.js environment variables are baked in at build time. After setting/changing `NEXT_PUBLIC_API_URL`, you MUST rebuild:
 
-1. In Render Dashboard → `automify-ai-frontend` service
+1. In Render Dashboard → `wycly-frontend` service
 2. Click **"Manual Deploy"** → **"Clear build cache & deploy"**
 3. Wait for deployment to complete (5-10 minutes)
 
 ### 4. Verify Backend is Running
 
 1. Check backend service status: Should be **"Live"** (green)
-2. Test backend health: Visit `https://automify-ai-backend-xxxx.onrender.com/health`
+2. Test backend health: Visit `https://wycly-backend-xxxx.onrender.com/health`
    - Should return: `{"status":"ok"}`
-3. Test API docs: Visit `https://automify-ai-backend-xxxx.onrender.com/docs`
+3. Test API docs: Visit `https://wycly-backend-xxxx.onrender.com/docs`
    - Should show FastAPI documentation
 
 ### 5. Check Browser Console
@@ -47,9 +47,9 @@ Login works on localhost but fails on Render. This is usually because the fronte
 1. Open your frontend URL in browser
 2. Open Developer Tools (F12) → Console tab
 3. Look for these debug messages:
-   - `API Base URL: https://automify-ai-backend-xxxx.onrender.com`
-   - `Raw API URL from env: https://automify-ai-backend-xxxx.onrender.com`
-4. If you see `automify-ai-backend` without `.onrender.com`, the env var is wrong
+   - `API Base URL: https://wycly-backend-xxxx.onrender.com`
+   - `Raw API URL from env: https://wycly-backend-xxxx.onrender.com`
+4. If you see `wycly-backend` without `.onrender.com`, the env var is wrong
 
 ### 6. Verify CORS Settings
 
@@ -60,26 +60,24 @@ FRONTEND_URL = settings.frontend_url  # Set automatically by Render
 
 ### 7. Test Login Endpoint Directly
 
-1. Go to: `https://automify-ai-backend-xxxx.onrender.com/docs`
+1. Go to: `https://wycly-backend-xxxx.onrender.com/docs`
 2. Find `/api/auth/login` endpoint
 3. Click "Try it out"
-4. Enter credentials:
-   - `username`: `admin@automify.com` (or your admin email)
-   - `password`: (your admin password)
+4. Enter credentials (from your registered account):
+   - `username`: Your registered email
+   - `password`: Your password
 5. Click "Execute"
 6. Should return a token if credentials are correct
 
-### 8. Create Admin User (If Needed)
+### 8. Create Account (If Needed)
 
-If you don't have an admin user yet:
+If you don't have an account yet:
 
-1. Go to Render Dashboard → `automify-ai-backend` service
-2. Click **"Shell"** tab
-3. Run:
-   ```bash
-   python create_admin_auto.py
-   ```
-4. This creates an admin user with credentials from `ADMIN_EMAIL` and `ADMIN_PASSWORD`
+1. Go to your frontend URL: `https://wycly-frontend-xxxx.onrender.com`
+2. Click **"Sign Up"** to create your account
+3. Fill in your details (email, password, name)
+4. Click **"Sign Up"**
+5. You'll be automatically logged in
 
 ## Common Issues
 
@@ -106,15 +104,15 @@ If you don't have an admin user yet:
 - [ ] `NEXT_PUBLIC_API_URL` is set correctly in frontend environment
 - [ ] Frontend was rebuilt after setting `NEXT_PUBLIC_API_URL`
 - [ ] Backend health check works: `/health` endpoint
-- [ ] Admin user exists (create if needed)
+- [ ] Account created (sign up if needed)
 - [ ] Browser console shows correct API URL
 - [ ] No CORS errors in browser console
 
 ## Still Not Working?
 
 1. Check Render service logs:
-   - Backend: Dashboard → `automify-ai-backend` → Logs tab
-   - Frontend: Dashboard → `automify-ai-frontend` → Logs tab
+   - Backend: Dashboard → `wycly-backend` → Logs tab
+   - Frontend: Dashboard → `wycly-frontend` → Logs tab
 
 2. Check browser Network tab:
    - Open DevTools → Network tab

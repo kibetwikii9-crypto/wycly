@@ -49,12 +49,12 @@ Before deploying, gather these values:
    ```
    Copy the output - you'll need it!
 
-3. **ADMIN_PASSWORD** - Password for your admin user
-   - This will auto-create admin user on first startup
-
 ### **Optional:**
-4. **BOT_TOKEN** - If you're using Telegram bot features
-5. **OPENAI_API_KEY** - If you want to use OpenAI features
+3. **OPENAI_API_KEY** - If you want to use OpenAI features
+
+**Note:** BOT_TOKEN and ADMIN credentials are NOT needed. Users will:
+- Connect their own Telegram bot tokens through the dashboard
+- Create their own accounts through the registration endpoint
 
 ---
 
@@ -74,8 +74,8 @@ Before deploying, gather these values:
 ### **3.2 Configure Services**
 
 Render will detect `render.yaml` and show you 2 services:
-- `automify-ai-backend` (FastAPI backend)
-- `automify-ai-frontend` (Next.js frontend)
+- `wycly-backend` (FastAPI backend)
+- `wycly-frontend` (Next.js frontend)
 
 **⚠️ IMPORTANT**: If you want different service names, update `render.yaml` first!
 
@@ -89,10 +89,10 @@ Click **"Apply"** to create the services.
 
 After services are created, you need to set environment variables:
 
-### **4.1 Backend Service (`automify-ai-backend`)**
+### **4.1 Backend Service (`wycly-backend`)**
 
 1. Go to Render dashboard
-2. Click on **`automify-ai-backend`** service
+2. Click on **`wycly-backend`** service
 3. Go to **"Environment"** tab
 4. Add these variables:
 
@@ -100,26 +100,25 @@ After services are created, you need to set environment variables:
 |----------|-------|-------|
 | `DATABASE_URL` | `postgresql://postgres.fmgbnxvgticaljxizwat:%23Kibee%402023@aws-1-eu-central-1.pooler.supabase.com:5432/postgres` | Your Supabase connection string |
 | `SECRET_KEY` | `[generated key]` | The key you generated in Step 2 |
-| `ADMIN_EMAIL` | `admin@yourdomain.com` | Your admin email (or leave default) |
-| `ADMIN_PASSWORD` | `[your password]` | Password for admin user |
-| `BOT_TOKEN` | `[optional]` | Only if using Telegram |
 | `OPENAI_API_KEY` | `[optional]` | Only if using OpenAI |
+
+**Note:** BOT_TOKEN and ADMIN credentials are NOT needed. Users create their own accounts and connect their own Telegram bots.
 
 **⚠️ CRITICAL**: Make sure `DATABASE_URL` is set correctly!
 
 5. Click **"Save Changes"**
 6. Service will automatically restart
 
-### **4.2 Frontend Service (`automify-ai-frontend`)**
+### **4.2 Frontend Service (`wycly-frontend`)**
 
 The frontend should automatically get `NEXT_PUBLIC_API_URL` from `render.yaml`, but verify:
 
-1. Click on **`automify-ai-frontend`** service
+1. Click on **`wycly-frontend`** service
 2. Go to **"Environment"** tab
 3. Check that `NEXT_PUBLIC_API_URL` is set (should be auto-set)
 4. If missing, add it manually:
    ```
-   https://automify-ai-backend.onrender.com
+   https://wycly-backend.onrender.com
    ```
    (Replace with your actual backend URL)
 
@@ -131,12 +130,12 @@ After backend is running, initialize your database:
 
 ### **Option A: Automatic (Recommended)**
 
-The backend will automatically create tables on first startup if `ADMIN_PASSWORD` is set.
+The backend will automatically create tables on first startup.
 
 Check logs:
 1. Go to backend service → **"Logs"** tab
 2. Look for: `✅ Database initialized successfully`
-3. Look for: `✅ Admin user auto-created: [your email]`
+3. Look for: `✅ Application ready. Users can register through /api/auth/register endpoint.`
 
 ### **Option B: Manual Migration**
 
@@ -166,13 +165,16 @@ If automatic doesn't work, run migration script:
 3. Visit your frontend URL
 4. Should see landing page
 
-### **6.3 Test Login**
+### **6.3 Create Account and Test Login**
 
 1. Go to frontend URL
-2. Click **"Sign In"**
-3. Use your admin credentials:
-   - Email: `admin@yourdomain.com` (or `admin@automify.com`)
-   - Password: `[your ADMIN_PASSWORD]`
+2. Click **"Sign Up"** to create your account
+3. Fill in your details:
+   - Email: `your-email@example.com`
+   - Password: `[your chosen password]`
+   - Full Name: `Your Name`
+4. After registration, you'll be logged in automatically
+5. You can now connect your Telegram bot token through the dashboard
 
 ---
 
@@ -193,10 +195,10 @@ If automatic doesn't work, run migration script:
 - Check Supabase dashboard - is database active?
 - Check if password needs URL encoding (special characters)
 
-### **Admin user not created:**
-- Check `ADMIN_PASSWORD` is set
+### **Can't create account:**
+- Check database connection is working
 - Check logs for error messages
-- Verify `ADMIN_EMAIL` is set
+- Verify registration endpoint is accessible: `/api/auth/register`
 
 ---
 
@@ -216,8 +218,8 @@ After successful deployment:
 
 Your application should now be live on Render!
 
-- **Backend**: `https://automify-ai-backend.onrender.com`
-- **Frontend**: `https://automify-ai-frontend.onrender.com`
+- **Backend**: `https://wycly-backend.onrender.com`
+- **Frontend**: `https://wycly-frontend.onrender.com`
 
 ---
 
