@@ -1,11 +1,13 @@
 'use client';
 
 import { useAuth } from '@/lib/auth';
+import { usePathname } from 'next/navigation';
 import { LogOut, Moon, Sun } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const pathname = usePathname();
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
@@ -25,12 +27,77 @@ export default function Header() {
     }
   };
 
+  // Map pathname to readable page name
+  const getPageName = (path: string): string => {
+    if (path === '/dashboard') return 'Dashboard';
+    
+    // Remove /dashboard prefix and split by /
+    const parts = path.replace('/dashboard', '').split('/').filter(Boolean);
+    
+    if (parts.length === 0) return 'Dashboard';
+    
+    // Map common routes
+    const routeMap: { [key: string]: string } = {
+      'crm': 'CRM',
+      'contacts': 'Contacts',
+      'pipeline': 'Sales Pipeline',
+      'leads': 'Leads',
+      'conversations': 'Conversations',
+      'messages': 'Internal Messages',
+      'email-templates': 'Email Templates',
+      'sales-products': 'Products',
+      'sales': 'Sales',
+      'products': 'Products',
+      'inventory': 'Inventory',
+      'orders': 'Orders',
+      'purchasing': 'Purchasing',
+      'suppliers': 'Suppliers',
+      'finance': 'Finance',
+      'invoices': 'Invoices',
+      'expenses': 'Expenses',
+      'payments': 'Payments',
+      'reports': 'Financial Reports',
+      'taxes': 'Taxes',
+      'projects': 'Projects',
+      'tasks': 'Tasks',
+      'analytics': 'Analytics',
+      'financial': 'Financial Analytics',
+      'performance': 'Performance Analytics',
+      'handoff': 'Handoff',
+      'automation': 'Automation',
+      'knowledge': 'Knowledge Base',
+      'ai-rules': 'AI Rules',
+      'hr': 'HR & Employees',
+      'employees': 'Employees',
+      'departments': 'Departments',
+      'attendance': 'Attendance',
+      'leave': 'Leave Requests',
+      'performance': 'Performance Reviews',
+      'documents': 'Employee Documents',
+      'users': 'Users & Roles',
+      'integrations': 'Integrations',
+      'security': 'Security',
+      'settings': 'Settings',
+      'notifications': 'Notifications',
+      'onboarding': 'Onboarding',
+      'ads': 'Ad Studio',
+    };
+    
+    // Get the last part of the path
+    const lastPart = parts[parts.length - 1];
+    return routeMap[lastPart] || lastPart.split('-').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+  };
+
+  const pageName = getPageName(pathname);
+
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-[#007FFF]">
-            Wycly
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {pageName}
           </h1>
         </div>
         <div className="flex items-center space-x-4">
