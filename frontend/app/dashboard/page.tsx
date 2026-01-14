@@ -104,6 +104,11 @@ interface OverviewData {
   recent_activity: RecentActivity[];
   lead_snapshot: LeadSnapshot;
   time_insights: TimeInsights;
+  response_rate?: number;
+  response_rate_change?: number;
+  conversations_change?: number;
+  active_chats_change?: number;
+  leads_change?: number;
   financial_summary?: {
     revenue: number;
     expenses: number;
@@ -143,29 +148,37 @@ export default function DashboardPage() {
       name: 'Total Conversations',
       value: data?.total_conversations || 0,
       icon: MessageSquare,
-      change: '+12%',
-      changeType: 'positive',
+      change: data?.conversations_change !== undefined 
+        ? `${data.conversations_change >= 0 ? '+' : ''}${data.conversations_change.toFixed(1)}%`
+        : '0%',
+      changeType: (data?.conversations_change ?? 0) >= 0 ? 'positive' : 'negative',
     },
     {
       name: 'Active Chats',
       value: data?.active_chats || 0,
       icon: Zap,
-      change: '+5%',
-      changeType: 'positive',
+      change: data?.active_chats_change !== undefined 
+        ? `${data.active_chats_change >= 0 ? '+' : ''}${data.active_chats_change.toFixed(1)}%`
+        : '0%',
+      changeType: (data?.active_chats_change ?? 0) >= 0 ? 'positive' : 'negative',
     },
     {
       name: 'Leads Captured',
       value: data?.leads_captured || 0,
       icon: Users,
-      change: '+8%',
-      changeType: 'positive',
+      change: data?.leads_change !== undefined 
+        ? `${data.leads_change >= 0 ? '+' : ''}${data.leads_change.toFixed(1)}%`
+        : '0%',
+      changeType: (data?.leads_change ?? 0) >= 0 ? 'positive' : 'negative',
     },
     {
       name: 'Response Rate',
-      value: '98%',
+      value: data?.response_rate !== undefined ? `${data.response_rate}%` : '0%',
       icon: TrendingUp,
-      change: '+2%',
-      changeType: 'positive',
+      change: data?.response_rate_change !== undefined 
+        ? `${data.response_rate_change >= 0 ? '+' : ''}${data.response_rate_change.toFixed(1)}%`
+        : '0%',
+      changeType: (data?.response_rate_change ?? 0) >= 0 ? 'positive' : 'negative',
     },
   ];
 

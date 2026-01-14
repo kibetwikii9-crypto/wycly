@@ -376,3 +376,4 @@ async def update_opportunity_stage(
     db.commit()
     return {"message": "Opportunity stage updated", "stage_id": new_stage_id}
 
+

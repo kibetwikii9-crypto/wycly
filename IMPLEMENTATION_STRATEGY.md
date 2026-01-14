@@ -708,3 +708,4 @@ You want a **complete business management system** with 7 main categories. Let m
 
 **Ready to start? Tell me which phase/feature you want to begin with!**
 
+

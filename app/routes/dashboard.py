@@ -214,7 +214,10 @@ async def get_overview(
 
     # Conversation Flow Funnel
     total_incoming = total_conversations
-    ai_responses = total_conversations  # All conversations have AI responses
+    # Count conversations that have bot_reply (actual responses)
+    ai_responses = db.query(func.count(Conversation.id)).filter(
+        and_(conv_filter, Conversation.bot_reply.isnot(None), Conversation.bot_reply != "")
+    ).scalar() or 0
     # User engagement (unique users who had conversations)
     engaged_conversations = db.query(func.count(func.distinct(Conversation.user_id))).filter(
         conv_filter
@@ -223,6 +226,49 @@ async def get_overview(
     # Human handoff: Currently all conversations are AI-handled, so 0 handoffs
     # This will be updated when human handoff tracking is implemented
     human_handoffs = 0
+    
+    # Calculate response rate
+    response_rate = (ai_responses / total_incoming * 100) if total_incoming > 0 else 0
+    
+    # Calculate metrics for previous period (for change comparison)
+    previous_start_date = start_date - timedelta(days=days)
+    previous_conv_filter = and_(
+        Conversation.created_at >= previous_start_date,
+        Conversation.created_at < start_date
+    )
+    previous_lead_filter = and_(
+        Lead.created_at >= previous_start_date,
+        Lead.created_at < start_date
+    )
+    if business_id is not None:
+        previous_conv_filter = and_(previous_conv_filter, Conversation.business_id == business_id)
+        previous_lead_filter = and_(previous_lead_filter, Lead.business_id == business_id)
+    
+    # Previous period: conversations
+    previous_total_conversations = db.query(func.count(Conversation.id)).filter(previous_conv_filter).scalar() or 0
+    previous_ai_responses = db.query(func.count(Conversation.id)).filter(
+        and_(previous_conv_filter, Conversation.bot_reply.isnot(None), Conversation.bot_reply != "")
+    ).scalar() or 0
+    previous_response_rate = (previous_ai_responses / previous_total_conversations * 100) if previous_total_conversations > 0 else 0
+    
+    # Previous period: active chats (24h before the previous period)
+    previous_last_24h_start = previous_start_date - timedelta(hours=24)
+    previous_active_chats_filter = and_(
+        Conversation.created_at >= previous_last_24h_start,
+        Conversation.created_at < previous_start_date
+    )
+    if business_id is not None:
+        previous_active_chats_filter = and_(previous_active_chats_filter, Conversation.business_id == business_id)
+    previous_active_chats = db.query(func.count(Conversation.id)).filter(previous_active_chats_filter).scalar() or 0
+    
+    # Previous period: leads
+    previous_total_leads = db.query(func.count(Lead.id)).filter(previous_lead_filter).scalar() or 0
+    
+    # Calculate change percentages
+    response_rate_change = response_rate - previous_response_rate
+    conversations_change = ((total_conversations - previous_total_conversations) / previous_total_conversations * 100) if previous_total_conversations > 0 else 0
+    active_chats_change = ((active_chats - previous_active_chats) / previous_active_chats * 100) if previous_active_chats > 0 else 0
+    leads_change = ((total_leads - previous_total_leads) / previous_total_leads * 100) if previous_total_leads > 0 else 0
 
     # Smart Alerts & Recommendations
     alerts = []
@@ -398,6 +444,11 @@ async def get_overview(
             "leads_captured": leads_captured,
             "human_handoffs": human_handoffs,
         },
+        "response_rate": round(response_rate, 1),
+        "response_rate_change": round(response_rate_change, 1),
+        "conversations_change": round(conversations_change, 1),
+        "active_chats_change": round(active_chats_change, 1),
+        "leads_change": round(leads_change, 1),
         "financial_summary": financial_summary,
         "alerts": alerts[:5],  # Limit to 5 most important
         "recent_activity": recent_events[:10],  # Limit to 10 most recent

@@ -1,32 +1,30 @@
-warning: in the working copy of 'BOT_TROUBLESHOOTING.md', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'CREATE_ADMIN_USER.md', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'ENV_EXAMPLE.txt', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'QUICK_DEPLOY_CHECKLIST.md', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'RENDER_DEPLOYMENT_STEPS.md', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'RENDER_DEPLOYMENT_STEPS_SUPABASE.md', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'RENDER_FREE_TIER_GUIDE.md', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'app/config.py', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'app/database.py', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'app/main.py', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'app/services/auth.py', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'create_admin_auto.py', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'frontend/app/layout.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'frontend/app/login/page.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'frontend/components/Header.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'frontend/components/Sidebar.tsx', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'frontend/package-lock.json', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'frontend/package.json', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'render.yaml', LF will be replaced by CRLF the next time Git touches it
-ENV_EXAMPLE.txt
-app/config.py
-app/database.py
-app/main.py
-app/services/auth.py
-create_admin_auto.py
-frontend/app/layout.tsx
-frontend/app/login/page.tsx
-frontend/components/Header.tsx
-frontend/components/Sidebar.tsx
-frontend/package-lock.json
-frontend/package.json
-render.yaml
+warning: in the working copy of 'frontend/app/dashboard/page.tsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/frontend/app/dashboard/page.tsx b/frontend/app/dashboard/page.tsx[m
+[1mindex b1a51d3..40c984e 100644[m
+[1m--- a/frontend/app/dashboard/page.tsx[m
+[1m+++ b/frontend/app/dashboard/page.tsx[m
+[36m@@ -104,6 +104,8 @@[m [minterface OverviewData {[m
+   recent_activity: RecentActivity[];[m
+   lead_snapshot: LeadSnapshot;[m
+   time_insights: TimeInsights;[m
+[32m+[m[32m  response_rate?: number;[m
+[32m+[m[32m  response_rate_change?: number;[m
+   financial_summary?: {[m
+     revenue: number;[m
+     expenses: number;[m
+[36m@@ -162,10 +164,12 @@[m [mexport default function DashboardPage() {[m
+     },[m
+     {[m
+       name: 'Response Rate',[m
+[31m-      value: '98%',[m
+[32m+[m[32m      value: data?.response_rate !== undefined ? `${data.response_rate}%` : '0%',[m
+       icon: TrendingUp,[m
+[31m-      change: '+2%',[m
+[31m-      changeType: 'positive',[m
+[32m+[m[32m      change: data?.response_rate_change !== undefined[m[41m [m
+[32m+[m[32m        ? `${data.response_rate_change >= 0 ? '+' : ''}${data.response_rate_change.toFixed(1)}%`[m
+[32m+[m[32m        : '0%',[m
+[32m+[m[32m      changeType: (data?.response_rate_change ?? 0) >= 0 ? 'positive' : 'negative',[m
+     },[m
+   ];[m
+ [m

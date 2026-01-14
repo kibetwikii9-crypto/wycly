@@ -125,3 +125,4 @@ async def update_template(
     db.commit()
     return {"message": "Template updated"}
 
+

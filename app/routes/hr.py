@@ -560,3 +560,4 @@ async def get_employee_documents(
     documents = query.order_by(EmployeeDocument.created_at.desc()).all()
     return documents
 
+

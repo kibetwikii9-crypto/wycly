@@ -242,3 +242,4 @@ This will:
 
 **Should I proceed with creating the new sidebar structure?**
 
+

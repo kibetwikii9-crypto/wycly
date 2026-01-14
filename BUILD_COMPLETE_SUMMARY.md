@@ -237,3 +237,4 @@ The sidebar is now organized into **9 main categories** with subcategories:
 
 The system is ready for use and can be customized further as needed!
 
+

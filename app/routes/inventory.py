@@ -229,3 +229,4 @@ async def get_low_stock_products(
         "variants": [{"id": v.id, "name": v.name, "stock": v.stock_quantity} for v in variants],
     }
 
+

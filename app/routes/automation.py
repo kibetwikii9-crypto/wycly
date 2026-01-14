@@ -194,3 +194,4 @@ async def mark_job_run(
     db.commit()
     return {"message": "Job marked as run", "next_run": job.next_run}
 
+
